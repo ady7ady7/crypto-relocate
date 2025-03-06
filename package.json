@@ -4,32 +4,35 @@
     "description": "Interactive map and ranking of crypto-friendly countries",
     "main": "backend/server.js",
     "scripts": {
-      "start": "node backend/server.js",
-      "server": "nodemon backend/server.js",
-      "client": "npm start --prefix frontend",
-      "dev": "concurrently \"npm run server\" \"npm run client\"",
-      "install-backend": "npm install --prefix backend",
-      "install-frontend": "npm install --prefix frontend",
-      "install-all": "npm install && npm run install-backend && npm run install-frontend"
+        "start": "node backend/server.js",
+        "server": "nodemon backend/server.js",
+        "client": "npm start --prefix frontend",
+        "dev": "concurrently \"npm run server\" \"npm run client\"",
+        "install-backend": "npm install --prefix backend",
+        "install-frontend": "npm install --prefix frontend",
+        "install-all": "npm install && npm run install-backend && npm run install-frontend"
     },
     "devDependencies": {
-      "concurrently": "^7.6.0",
-      "nodemon": "^2.0.22"
+        "concurrently": "^7.6.0",
+        "nodemon": "^2.0.22"
     },
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/yourusername/crypto-relocate.git"
+        "type": "git",
+        "url": "git+https://github.com/yourusername/crypto-relocate.git"
     },
     "keywords": [
-      "crypto",
-      "cryptocurrency",
-      "taxes",
-      "relocation",
-      "mern",
-      "react",
-      "nodejs",
-      "mongodb"
+        "crypto",
+        "cryptocurrency",
+        "taxes",
+        "relocation",
+        "mern",
+        "react",
+        "nodejs",
+        "mongodb"
     ],
     "author": "Your Name",
-    "license": "MIT"
-  }
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.8.1"
+    }
+}

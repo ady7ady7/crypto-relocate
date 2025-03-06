@@ -6,7 +6,6 @@ import { theme } from './components/styles/Theme';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import CountryPage from './pages/CountryPage';
-import logo from './logo.svg';
 
 function App() {
   return (
