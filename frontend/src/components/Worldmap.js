@@ -241,23 +241,23 @@ function MapLegend() {
       <LegendTitle>Crypto-Friendliness Ranking</LegendTitle>
       <LegendItem>
         <LegendColor color={theme.colors.countryExcellent} />
-        <span>Excellent (Ranks 1-5): 0% taxes, excellent infrastructure</span>
+        <span>Excellent (Ranks 1-10): 0% taxes, excellent infrastructure</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={theme.colors.countryFavorable} />
-        <span>Favorable (Ranks 6-30): Low taxes, good infrastructure</span>
+        <span>Favorable (Ranks 11-33): Low taxes, good infrastructure</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={theme.colors.countryModerate} />
-        <span>Moderate (Ranks 31-50): Standard taxes, average support</span>
+        <span>Moderate (Ranks 34-62): Standard taxes, average support</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={theme.colors.countryRestrictive} />
-        <span>Restrictive (Ranks 51-70): High taxes or regulations</span>
+        <span>Restrictive (Ranks 63-78): High taxes or regulations</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={theme.colors.countryNotFavorable} />
-        <span>Not favorable (Ranks 71-89): Prohibitive for crypto</span>
+        <span>Not favorable (Ranks 79-89): Prohibitive for crypto</span>
       </LegendItem>
     </LegendContainer>
   );

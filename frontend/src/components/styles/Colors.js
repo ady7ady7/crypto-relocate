@@ -38,10 +38,10 @@ export const Colors = {
   
   // Get color by rank
   export const getColorByRank = (rank) => {
-    if (rank >= 1 && rank <= 5) return Colors.countryExcellent;
-    if (rank >= 6 && rank <= 30) return Colors.countryFavorable;
-    if (rank >= 31 && rank <= 50) return Colors.countryModerate;
-    if (rank >= 51 && rank <= 70) return Colors.countryRestrictive;
+    if (rank >= 1 && rank <= 10) return Colors.countryExcellent;
+    if (rank >= 11 && rank <= 33) return Colors.countryFavorable;
+    if (rank >= 34 && rank <= 62) return Colors.countryModerate;
+    if (rank >= 63 && rank <= 78) return Colors.countryRestrictive;
     return Colors.countryNotFavorable;
   };
   
