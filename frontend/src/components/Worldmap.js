@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
 
+
 // Styled components for the UI
 const MapWrapper = styled.div`
   display: flex;
@@ -146,6 +147,7 @@ const StyledMapContainer = styled(MapContainer)`
     border-radius: 4px;
     padding: 8px;
     font-size: 12px;
+    color: #f0f0f0; /* Light text color for better readability */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 `;
@@ -234,21 +236,29 @@ const categories = {
     description: 'Not favorable for crypto activities'
   }
 };
-// Function to determine country category based on data - enhanced with research insights
+
+// Modified function that will work with or without category property
 const getCategoryForCountry = (country) => {
   if (!country) return 'notFavorable';
   
-  // In your countries.js, you already have categories assigned directly
-  // So we can simply map them to our category keys
-  const categoryMapping = {
-    'Excellent': 'excellent',
-    'Favorable': 'favorable',
-    'Moderate': 'moderate', 
-    'Restrictive': 'restrictive',
-    'Not favorable': 'notFavorable'
-  };
+  // If category property exists, use it
+  if (country.category) {
+    if (country.category === 'Excellent') return 'excellent';
+    if (country.category === 'Favorable') return 'favorable';
+    if (country.category === 'Moderate') return 'moderate';
+    if (country.category === 'Restrictive') return 'restrictive';
+    if (country.category === 'Not favorable') return 'notFavorable';
+  }
   
-  return categoryMapping[country.category] || 'notFavorable';
+  // If no category property or it doesn't match, fallback to rank-based categorization
+  const rank = parseInt(country.rank);
+  
+  if (rank >= 1 && rank <= 5) return 'excellent';
+  if (rank >= 6 && rank <= 30) return 'favorable';
+  if (rank >= 31 && rank <= 50) return 'moderate';
+  if (rank >= 51 && rank <= 70) return 'restrictive';
+  
+  return 'notFavorable';
 };
 
 // Update regionalInsights based on the top ranked countries in each region from your data
@@ -290,12 +300,13 @@ const countryToContinentMap = {
   'ES': 'europe', 'NL': 'europe', 'BE': 'europe', 'SE': 'europe', 'DK': 'europe', 'FI': 'europe', 'NO': 'europe',
   'IE': 'europe', 'AT': 'europe', 'GR': 'europe', 'PL': 'europe', 'CZ': 'europe', 'HU': 'europe', 'RO': 'europe',
   'SI': 'europe', 'EE': 'europe', 'HR': 'europe', 'BG': 'europe', 'SK': 'europe', 'LV': 'europe', 'LT': 'europe',
-  'CY': 'europe', 'LU': 'europe', 'IS': 'europe', 'GE': 'europe', 'MC': 'europe', 'RS': 'europe',
+  'CY': 'europe', 'LU': 'europe', 'IS': 'europe', 'GE': 'europe', 'MC': 'europe', 'RS': 'europe', 'LI': 'europe',
   
   // Asia (comprehensive list from Asian research document)
   'AE': 'asia', 'SG': 'asia', 'JP': 'asia', 'KR': 'asia', 'MY': 'asia', 'TH': 'asia', 'TR': 'asia', 'IN': 'asia',
   'ID': 'asia', 'VN': 'asia', 'PH': 'asia', 'SA': 'asia', 'QA': 'asia', 'IL': 'asia', 'KZ': 'asia', 'HK': 'asia',
   'BN': 'asia', 'MM': 'asia', 'LK': 'asia', 'KW': 'asia', 'KH': 'asia', 'OM': 'asia', 'JO': 'asia', 'LB': 'asia',
+  'AM': 'asia', 'AZ': 'asia', 'BT': 'asia', 'CN': 'asia', 'IR': 'asia', 'IQ': 'asia', 'KP': 'asia',
   
   // North America (expanded with Caribbean nations)
   'US': 'northAmerica', 'CA': 'northAmerica', 'MX': 'northAmerica', 'PA': 'northAmerica', 'BS': 'northAmerica',
@@ -319,8 +330,6 @@ const countryToContinentMap = {
   'WS': 'oceania', 'TO': 'oceania', 'KI': 'oceania', 'MH': 'oceania', 'TV': 'oceania', 'NR': 'oceania',
   'PW': 'oceania', 'CK': 'oceania', 'NU': 'oceania'
 };
-
-
 
 const WorldMap = ({ countries }) => {
   const [geoJsonData, setGeoJsonData] = useState(null);
@@ -349,7 +358,7 @@ const WorldMap = ({ countries }) => {
   
   // Calculate statistics for each continent based on all research
   useEffect(() => {
-    if (countries.length > 0) {
+    if (countries && countries.length > 0) {
       // Initialize stats
       const stats = {
         world: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
@@ -378,6 +387,9 @@ const WorldMap = ({ countries }) => {
       setContinentStats(stats);
     }
   }, [countries]);
+
+
+
   
   // Style function for GeoJSON features - updated with comprehensive categorization
   const style = (feature) => {
@@ -400,7 +412,7 @@ const WorldMap = ({ countries }) => {
     const country = countries.find(c => c.code === countryCode);
     
     if (country) {
-      // Get category for the country using expanded criteria
+      // Get category for the country using the fixed categorization function
       const categoryKey = getCategoryForCountry(country);
       const category = categories[categoryKey];
       
@@ -443,25 +455,24 @@ const WorldMap = ({ countries }) => {
       const categoryKey = getCategoryForCountry(country);
       const category = categories[categoryKey];
       
-      // Create tooltip with more detailed information based on research
-    // Update the tooltip content to match your data structure
-    const tooltipContent = `
-      <div style="text-align: left; min-width: 200px;">
-        <strong style="font-size: 14px;">${country.name}</strong>
-        <br/>
-        <span style="color: ${category.color};">Rank: #${country.rank} - ${category.name}</span>
-        <br/>
-        <small>Capital Gains Tax: ${country.capitalGainsTax}</small>
-        <br/>
-        <small>Wealth Tax: ${country.wealthTax}</small>
-        <br/>
-        <small>Residency Investment: ${country.residencyInvestment}</small>
-        <br/>
-        <small>Financial Services: ${country.financialServices}</small>
-        ${country.futureRisks ? `<br/><small>Future Risks: ${country.futureRisks}</small>` : ''}
-        ${country.costOfLivingIndex ? `<br/><small>Cost of Living: ${country.costOfLivingIndex}</small>` : ''}
-      </div>
-    `;
+      // Create tooltip with more detailed information based on research - with improved readability
+      const tooltipContent = `
+        <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
+          <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
+          <br/>
+          <span style="color: ${category.color}; font-weight: 600;">Rank: #${country.rank} - ${category.name}</span>
+          <br/>
+          <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTax}</small>
+          <br/>
+          <small style="color: #e0e0e0;">Wealth Tax: ${country.wealthTax}</small>
+          <br/>
+          <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
+          <br/>
+          <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
+          ${country.futureRisks ? `<br/><small style="color: #e0e0e0;">Future Risks: ${country.futureRisks}</small>` : ''}
+          ${country.costOfLivingIndex ? `<br/><small style="color: #e0e0e0;">Cost of Living: ${country.costOfLivingIndex}</small>` : ''}
+        </div>
+      `;
       
       layer.bindTooltip(tooltipContent, { 
         permanent: false,
@@ -472,7 +483,7 @@ const WorldMap = ({ countries }) => {
       // Add interactive effects
       layer.on({
         click: () => {
-          window.location.href = `/country/${country._id}`;
+          window.location.href = `/country/${country.id || countryCode.toLowerCase()}`;
         },
         mouseover: (e) => {
           const layer = e.target;
@@ -494,9 +505,10 @@ const WorldMap = ({ countries }) => {
       });
     } else {
       // Simple tooltip for unlisted countries
-      layer.bindTooltip(`<strong>${countryName}</strong>`, { 
+      layer.bindTooltip(`<strong style="color: #ffffff;">${countryName}</strong>`, { 
         permanent: false,
-        direction: 'top'
+        direction: 'top',
+        className: 'country-tooltip'
       });
     }
   };
@@ -669,7 +681,7 @@ const WorldMap = ({ countries }) => {
         
         <MapController continent={selectedContinent} />
         <MapLegend />
-        
+
         {loading && (
           <div style={{
             position: 'absolute',

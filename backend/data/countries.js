@@ -185,3 +185,4 @@ const countries = [
 
 // Export the countries array for use in other files
 module.exports = countries;
+//export default countries;
