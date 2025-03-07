@@ -16,11 +16,11 @@ export const Colors = {
     border: '#2D2D2D',
     
     // Country category colors
-    countryExcellent: '#4CAF50', // Vivid green
-    countryFavorable: '#8BC34A', // Light green
-    countryModerate: '#FFC107', // Amber/yellow
-    countryRestrictive: '#FF9800', // Orange
-    countryNotFavorable: '#555555', // Grey
+    countryExcellent: '#4ef037', // Vivid green
+    countryFavorable: '#5be7a9', // Light green
+    countryModerate: '#f8fe85', // Amber/yellow
+    countryRestrictive: '#ffbd67', // Orange
+    countryNotFavorable: '#ff6464', // Grey
   };
   
   // For use outside styled-components context

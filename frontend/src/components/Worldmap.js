@@ -6,6 +6,41 @@ import 'leaflet/dist/leaflet.css';
 import styled, { useTheme } from 'styled-components';
 import { CategoryDefinitions, getColorByRank } from './styles/Colors';
 
+// Function to determine if a GeoJSON feature is a main territory or remote territory
+const isMainTerritory = (countryCode, bounds) => {
+  // Skip for countries that don't have the issue
+  if (!countryCode) return true;
+  
+  const center = bounds.getCenter();
+  
+  switch (countryCode) {
+    case 'NO': // Norway
+      // Mainland Norway's latitude is typically between 58-71, longitude between 4-30
+      // Exclude Svalbard which is typically above 74°N
+      return center.lat < 74 && center.lng > 4 && center.lng < 30;
+    
+    case 'FR': // France
+      // Check if this is mainland France vs. overseas territories
+      return center.lat >= 41 && center.lat <= 52 && center.lng >= -5 && center.lng <= 10;
+    
+    case 'US': // United States
+      // Check if this is mainland US vs. Alaska, Hawaii, etc.
+      return center.lat >= 24 && center.lat <= 50 && center.lng >= -125 && center.lng <= -66;
+    
+    case 'RU': // Russia
+      // This is a rough approximation for mainland Russia
+      return center.lat <= 80;
+      
+    case 'DK': // Denmark
+      // Exclude Greenland
+      return center.lat < 60;
+      
+    // Add more countries with remote territories as needed
+    
+    default:
+      return true;
+  }
+};
 
 // Styled components for the UI
 const MapWrapper = styled.div`
@@ -153,6 +188,23 @@ const StyledMapContainer = styled(MapContainer)`
   }
 `;
 
+// Loading overlay component
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: white;
+  font-size: 18px;
+  border-radius: 0 0 8px 8px;
+`;
+
 // MapController component to handle map view changes
 function MapController({ continent }) {
   const map = useMap();
@@ -210,8 +262,6 @@ function MapLegend() {
     </LegendContainer>
   );
 }
-
-
 
 // Modified function that will work with or without category property
 const getCategoryForCountry = (country) => {
@@ -310,26 +360,57 @@ const countryToContinentMap = {
 };
 
 const WorldMap = ({ countries }) => {
+  const theme = useTheme(); // Get theme using styled-components' useTheme hook
   const [geoJsonData, setGeoJsonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedContinent, setSelectedContinent] = useState('world');
   const [continentStats, setContinentStats] = useState({});
-
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef(null);
+  
+  // Use our centralized category definitions
   const categories = CategoryDefinitions;
   
-  // Fetch GeoJSON data
+  // Fetch GeoJSON data and preprocess it
   useEffect(() => {
     const fetchGeoData = async () => {
       try {
+        // Show loading indicator
+        setLoading(true);
+        setMapReady(false);
+        
         // Clean world map without labels
         const response = await axios.get(
           'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
         );
-        setGeoJsonData(response.data);
-        setLoading(false);
+        
+        // Preprocess the GeoJSON data to add bounds for each feature
+        const processedData = {
+          ...response.data,
+          features: response.data.features.map(feature => {
+            // Create a temporary L.GeoJSON to get the bounds
+            const tempGeoJSON = L.geoJSON({ type: feature.type, geometry: feature.geometry });
+            feature.bounds = tempGeoJSON.getBounds();
+            return feature;
+          })
+        };
+        
+        // Set the processed GeoJSON data
+        setGeoJsonData(processedData);
+        
+        // Short delay to ensure browser has time to process before rendering
+        setTimeout(() => {
+          setLoading(false);
+          
+          // Wait a little longer before marking as ready to ensure smooth rendering
+          setTimeout(() => {
+            setMapReady(true);
+          }, 200);
+        }, 300);
       } catch (error) {
         console.error('Failed to fetch GeoJSON data:', error);
         setLoading(false);
+        setMapReady(true); // Still mark as ready to show something
       }
     };
     
@@ -367,11 +448,29 @@ const WorldMap = ({ countries }) => {
       setContinentStats(stats);
     }
   }, [countries]);
-
-
-
   
-  // Style function for GeoJSON features - updated with comprehensive categorization
+  // Access and configure the map when it's ready
+  useEffect(() => {
+    if (mapReady && mapRef.current) {
+      const leafletMap = mapRef.current;
+      
+      // If leafletMap is available, we can configure performance settings
+      if (leafletMap && typeof leafletMap.getRenderer === 'function') {
+        const renderer = leafletMap.getRenderer(leafletMap);
+        if (renderer) {
+          // Increase the max size for better performance with all features visible
+          renderer.options.padding = 2;
+          
+          // Set higher precision for rendering
+          if (renderer.options) {
+            renderer.options.tolerance = 0;
+          }
+        }
+      }
+    }
+  }, [mapReady]);
+
+  // Style function for GeoJSON features
   const style = (feature) => {
     // Get country code
     const countryCode = feature.properties.ISO_A2 || 
@@ -382,9 +481,9 @@ const WorldMap = ({ countries }) => {
       return {
         fillColor: '#333333',
         fillOpacity: 0.5,
-        weight: 1,
+        weight: 0.5,
         color: '#555555',
-        opacity: 0.7
+        opacity: 0.5
       };
     }
     
@@ -396,12 +495,15 @@ const WorldMap = ({ countries }) => {
       const categoryKey = getCategoryForCountry(country);
       const category = categories[categoryKey];
       
+      // Check if this is a main territory before applying a stronger style
+      const isMain = feature.bounds ? isMainTerritory(countryCode, feature.bounds) : true;
+      
       return {
         fillColor: category.color,
-        fillOpacity: 0.7,
+        fillOpacity: isMain ? 0.8 : 0.6, // Slightly less opacity for territories
         weight: 1,
         color: '#FFFFFF',
-        opacity: 0.5
+        opacity: 0.7
       };
     }
     
@@ -409,13 +511,13 @@ const WorldMap = ({ countries }) => {
     return {
       fillColor: '#333333',
       fillOpacity: 0.5,
-      weight: 1,
+      weight: 0.5,
       color: '#555555',
       opacity: 0.5
     };
   };
   
-  // Add tooltips and interactions to each country - enhanced with detailed research info
+  // Add interactions to each country - enhanced with detailed research info
   const onEachFeature = (feature, layer) => {
     const countryCode = feature.properties.ISO_A2 || 
                        feature.properties.iso_a2 || 
@@ -426,6 +528,27 @@ const WorldMap = ({ countries }) => {
                        feature.properties.name || 
                        feature.properties.NAME || 
                        'Unknown Country';
+    
+    // Store bounds in the feature for later use
+    if (!feature.bounds) {
+      feature.bounds = layer.getBounds();
+    }
+    
+    // Check if this is a main territory or a remote territory
+    if (!isMainTerritory(countryCode, feature.bounds)) {
+      // For remote territories, we'll still make them clickable but no tooltip
+      if (countryCode) {
+        const country = countries.find(c => c.code === countryCode);
+        if (country) {
+          layer.on({
+            click: () => {
+              window.location.href = `/country/${country.code || countryCode}`;
+            }
+          });
+        }
+      }
+      return; // Skip adding tooltip for remote territories
+    }
     
     // Find matching country in our data
     const country = countries.find(c => c.code === countryCode);
@@ -454,44 +577,131 @@ const WorldMap = ({ countries }) => {
         </div>
       `;
       
+      // Configure tooltip with additional options for better positioning
+      const tooltipOptions = { 
+        permanent: false,
+        className: 'country-tooltip'
+      };
+      
+      // Custom tooltip positioning for specific countries
+      if (countryCode) {
+        switch (countryCode) {
+          case 'NO': // Norway
+            tooltipOptions.direction = 'right';
+            tooltipOptions.offset = L.point(10, 0);
+            break;
+          case 'SE': // Sweden
+            tooltipOptions.direction = 'right';
+            tooltipOptions.offset = L.point(5, 0);
+            break;
+          case 'FI': // Finland
+            tooltipOptions.direction = 'right';
+            tooltipOptions.offset = L.point(5, 0);
+            break;
+          case 'IS': // Iceland
+            tooltipOptions.direction = 'bottom';
+            break;
+          case 'NZ': // New Zealand
+            tooltipOptions.direction = 'left';
+            break;
+          case 'JP': // Japan
+            tooltipOptions.direction = 'left';
+            break;
+          case 'AU': // Australia
+            tooltipOptions.direction = 'top';
+            break;
+          default:
+            tooltipOptions.direction = 'top';
+        }
+      } else {
+        tooltipOptions.direction = 'top';
+      }
+      
+      layer.bindTooltip(tooltipContent, tooltipOptions);
+      
+      // Add interactive effects with improved highlighting
+      layer.on({
+        click: () => {
+          // Use _id if available, but prefer the consistent 'code' property
+          window.location.href = `/country/${country.code || countryCode}`;
+        },
+        mouseover: (e) => {
+          const layer = e.target;
+          
+          // More visible highlighting effect
+          layer.setStyle({
+            fillOpacity: 0.9,
+            weight: 2,
+            opacity: 1,
+            color: '#FFFFFF' // White border for better visibility
+          });
+          
+          if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+            layer.bringToFront();
+          }
+        },
+        mouseout: (e) => {
+          const layer = e.target;
+          
+          // Restore original style
+          layer.setStyle({
+            fillOpacity: 0.7,
+            weight: 1,
+            opacity: 0.5,
+            color: '#FFFFFF'
+          });
+        }
+      });
+    } else {
+      // Simple tooltip for unlisted countries with improved styling
+      const tooltipContent = `
+        <div style="text-align: center; color: #f0f0f0;">
+          <strong style="font-size: 14px; color: #ffffff;">${countryName}</strong>
+          <br/>
+          <small style="color: #e0e0e0;">No crypto data available</small>
+        </div>
+      `;
+      
       layer.bindTooltip(tooltipContent, { 
         permanent: false,
         direction: 'top',
         className: 'country-tooltip'
       });
       
-      // Add interactive effects
+      // Add basic hover effect for countries without data
       layer.on({
-        click: () => {
-          // Use _id if available, or fall back to countryCode
-          window.location.href = `/country/${country._id || countryCode}`;
-        },
         mouseover: (e) => {
           const layer = e.target;
           layer.setStyle({
-            fillOpacity: 0.9,
-            weight: 2,
-            opacity: 1
+            fillOpacity: 0.8,
+            weight: 1.5,
+            opacity: 0.8,
+            color: '#AAAAAA' // Lighter border for countries without data
           });
-          layer.bringToFront();
         },
         mouseout: (e) => {
           const layer = e.target;
           layer.setStyle({
-            fillOpacity: 0.7,
+            fillOpacity: 0.5,
             weight: 1,
-            opacity: 0.5
+            opacity: 0.5,
+            color: '#555555'
           });
         }
       });
-    } else {
-      // Simple tooltip for unlisted countries
-      layer.bindTooltip(`<strong style="color: #ffffff;">${countryName}</strong>`, { 
-        permanent: false,
-        direction: 'top',
-        className: 'country-tooltip'
-      });
     }
+  };
+  
+  // GeoJSON options to ensure complete preloading
+  const geoJsonOptions = {
+    style: style,
+    onEachFeature: onEachFeature,
+    // These settings ensure all features are rendered at once
+    renderer: L.canvas({ padding: 2, tolerance: 0 }),
+    // Disable chunked loading to render everything at once
+    chunkedLoading: false,
+    // Don't filter features for better panning experience
+    filter: () => true
   };
   
   return (
@@ -631,53 +841,51 @@ const WorldMap = ({ countries }) => {
         </ContinentButton>
       </ContinentSelector>
       
-      <StyledMapContainer
-        center={[30, 10]}
-        zoom={2}
-        minZoom={1.5}
-        maxZoom={6}
-        scrollWheelZoom={true}
-        zoomControl={true}
-        attributionControl={false}
-        zoomAnimation={true}
-        zoomSnap={0.25}
-        zoomDelta={0.25}
-        wheelDebounceTime={100}
-        wheelPxPerZoomLevel={200}
-        preferCanvas={true}
-      >
-        {/* Use a minimal base map without labels */}
-        <TileLayer
-          url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
-        
-        {geoJsonData && (
-          <GeoJSON 
-            data={geoJsonData}
-            style={style}
-            onEachFeature={onEachFeature}
+      <div style={{ position: 'relative' }}>
+        <StyledMapContainer
+          center={[30, 10]}
+          zoom={2}
+          minZoom={1.5}
+          maxZoom={6}
+          scrollWheelZoom={true}
+          zoomControl={true}
+          attributionControl={false}
+          zoomAnimation={true}
+          zoomSnap={0.25}
+          zoomDelta={0.25}
+          wheelDebounceTime={100}
+          wheelPxPerZoomLevel={200}
+          preferCanvas={true}
+          ref={mapRef}
+          // Set a key to force re-rendering when data changes
+          key={`map-${mapReady ? 'ready' : 'loading'}`}
+        >
+          {/* Use a minimal base map without labels */}
+          <TileLayer
+            url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
-        )}
+          
+          {geoJsonData && mapReady && (
+            <GeoJSON 
+              data={geoJsonData}
+              {...geoJsonOptions}
+            />
+          )}
+          
+          <MapController continent={selectedContinent} />
+          <MapLegend />
+        </StyledMapContainer>
         
-        <MapController continent={selectedContinent} />
-        <MapLegend />
-
         {loading && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            color: 'white'
-          }}>
-            Loading map data...
-          </div>
+          <LoadingOverlay>
+            <div>
+              <div style={{ marginBottom: '10px' }}>Loading map data...</div>
+              <div style={{ fontSize: '14px', opacity: 0.8 }}>This may take a moment to ensure smooth navigation</div>
+            </div>
+          </LoadingOverlay>
         )}
-      </StyledMapContainer>
+      </div>
     </MapWrapper>
   );
 };
