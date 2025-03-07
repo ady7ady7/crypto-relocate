@@ -45,6 +45,25 @@ const RankBadge = styled.span`
   margin-left: ${({ theme }) => theme.spacing.sm};
 `;
 
+const CategoryBadge = styled.span`
+  display: inline-block;
+  background-color: ${({ category, theme }) => {
+    switch (category) {
+      case 'Excellent': return '#4CAF50';
+      case 'Favorable': return '#8BC34A';
+      case 'Moderate': return '#FFC107';
+      case 'Restrictive': return '#FF9800';
+      case 'Not favorable': return '#555555';
+      default: return theme.colors.accent;
+    }
+  }};
+  color: white;
+  font-weight: bold;
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  margin-left: ${({ theme }) => theme.spacing.sm};
+`;
+
 const CountryDescription = styled.p`
   font-size: 1.1rem;
   color: ${({ theme }) => theme.colors.secondaryText};
@@ -93,7 +112,7 @@ const InfoValue = styled.div`
 const RiskBadge = styled.div`
   display: inline-block;
   background-color: ${({ theme }) => theme.colors.warning};
-  color: ${({ theme }) => theme.colors.background};
+  color: #000000; /* Black text is more readable on warning background */
   font-weight: bold;
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
@@ -108,11 +127,18 @@ const CountryPage = () => {
   useEffect(() => {
     const fetchCountry = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:5000/api/countries/${id}`);
+        const { data } = await axios.get(`/api/countries/${id}`);
         setCountry(data);
         setLoading(false);
       } catch (error) {
-        setError('Error fetching country data. Please try again later.');
+        console.error('Error fetching country data:', error);
+        
+        if (error.response && error.response.status === 404) {
+          setError('Country not found. Please check the ID and try again.');
+        } else {
+          setError('Error fetching country data. Please try again later.');
+        }
+        
         setLoading(false);
       }
     };
@@ -120,9 +146,42 @@ const CountryPage = () => {
     fetchCountry();
   }, [id]);
 
-  if (loading) return <CountryPageContainer>Loading...</CountryPageContainer>;
-  if (error) return <CountryPageContainer>{error}</CountryPageContainer>;
-  if (!country) return <CountryPageContainer>Country not found.</CountryPageContainer>;
+  if (loading) return (
+    <CountryPageContainer>
+      <div style={{ textAlign: 'center', padding: '50px 0' }}>
+        <h2>Loading country data...</h2>
+      </div>
+    </CountryPageContainer>
+  );
+  
+  if (error) return (
+    <CountryPageContainer>
+      <div style={{ textAlign: 'center', padding: '50px 0' }}>
+        <h2>Error</h2>
+        <p>{error}</p>
+        <BackLink to="/">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Rankings
+        </BackLink>
+      </div>
+    </CountryPageContainer>
+  );
+  
+  if (!country) return (
+    <CountryPageContainer>
+      <div style={{ textAlign: 'center', padding: '50px 0' }}>
+        <h2>Country not found</h2>
+        <BackLink to="/">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Rankings
+        </BackLink>
+      </div>
+    </CountryPageContainer>
+  );
 
   return (
     <CountryPageContainer>
@@ -137,6 +196,7 @@ const CountryPage = () => {
         <CountryName>
           {country.name}
           <RankBadge>Rank #{country.rank}</RankBadge>
+          {country.category && <CategoryBadge category={country.category}>{country.category}</CategoryBadge>}
         </CountryName>
         <CountryDescription>{country.description}</CountryDescription>
       </CountryHeader>
