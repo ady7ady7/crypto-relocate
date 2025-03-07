@@ -7,6 +7,7 @@ import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import CountryPage from './pages/CountryPage';
 
+
 function App() {
   return (
     <ThemeProvider theme={theme}>

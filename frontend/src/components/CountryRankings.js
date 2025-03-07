@@ -196,7 +196,7 @@ const CountryRankings = ({ countries }) => {
             <TableRow key={country._id}>
               <RankCell>{country.rank}</RankCell>
               <CountryNameCell>
-                <CountryLink to={`/country/${country._id}`}>
+                <CountryLink to={`/country/${country._id || country.code}`}>
                   {country.name}
                 </CountryLink>
               </CountryNameCell>

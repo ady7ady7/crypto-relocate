@@ -1,15 +1,9 @@
+import { Colors } from './Colors';
+
 export const theme = {
     colors: {
-      background: '#121212',
-      secondaryBackground: '#1E1E1E',
-      text: '#FFFFFF',
-      secondaryText: '#B3B3B3',
-      accent: '#F7931A', // Bitcoin gold
-      accentHover: '#E78318',
-      success: '#4CAF50',
-      warning: '#FFC107',
-      danger: '#F44336',
-      border: '#2D2D2D'
+      // Import all application colors from the Colors file
+      ...Colors
     },
     spacing: {
       xs: '0.25rem',

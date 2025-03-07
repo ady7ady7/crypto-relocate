@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
+import { CategoryDefinitions, getColorByRank } from './styles/Colors';
 
 
 // Styled components for the UI
@@ -182,60 +183,35 @@ function MapController({ continent }) {
 
 // Map Legend component
 function MapLegend() {
+  const theme = useTheme();
   return (
     <LegendContainer>
       <LegendTitle>Crypto-Friendliness Ranking</LegendTitle>
       <LegendItem>
-        <LegendColor color="#4CAF50" />
+        <LegendColor color={theme.colors.countryExcellent} />
         <span>Excellent (Ranks 1-5): 0% taxes, excellent infrastructure</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color="#8BC34A" />
+        <LegendColor color={theme.colors.countryFavorable} />
         <span>Favorable (Ranks 6-30): Low taxes, good infrastructure</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color="#FFC107" />
+        <LegendColor color={theme.colors.countryModerate} />
         <span>Moderate (Ranks 31-50): Standard taxes, average support</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color="#FF9800" />
+        <LegendColor color={theme.colors.countryRestrictive} />
         <span>Restrictive (Ranks 51-70): High taxes or regulations</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color="#555555" />
+        <LegendColor color={theme.colors.countryNotFavorable} />
         <span>Not favorable (Ranks 71-89): Prohibitive for crypto</span>
       </LegendItem>
     </LegendContainer>
   );
 }
 
-const categories = {
-  excellent: {
-    name: 'Excellent',
-    color: '#4CAF50', // Vivid green
-    description: 'Excellent crypto environment with minimal taxation'
-  },
-  favorable: {
-    name: 'Favorable',
-    color: '#8BC34A', // Light green
-    description: 'Favorable crypto environment with some taxation'
-  },
-  moderate: {
-    name: 'Moderate',
-    color: '#FFC107', // Amber/yellow
-    description: 'Moderate crypto environment with standard taxation'
-  },
-  restrictive: {
-    name: 'Restrictive',
-    color: '#FF9800', // Orange
-    description: 'Restrictive crypto environment with high taxation'
-  },
-  notFavorable: {
-    name: 'Not Favorable',
-    color: '#555555', // Grey
-    description: 'Not favorable for crypto activities'
-  }
-};
+
 
 // Modified function that will work with or without category property
 const getCategoryForCountry = (country) => {
@@ -252,12 +228,14 @@ const getCategoryForCountry = (country) => {
   
   // If no category property or it doesn't match, fallback to rank-based categorization
   const rank = parseInt(country.rank);
+  // Use our centralized function to determine category by rank
+  const color = getColorByRank(rank);
   
-  if (rank >= 1 && rank <= 5) return 'excellent';
-  if (rank >= 6 && rank <= 30) return 'favorable';
-  if (rank >= 31 && rank <= 50) return 'moderate';
-  if (rank >= 51 && rank <= 70) return 'restrictive';
-  
+  // Return the category key based on the color
+  if (color === CategoryDefinitions.excellent.color) return 'excellent';
+  if (color === CategoryDefinitions.favorable.color) return 'favorable';
+  if (color === CategoryDefinitions.moderate.color) return 'moderate';
+  if (color === CategoryDefinitions.restrictive.color) return 'restrictive';
   return 'notFavorable';
 };
 
@@ -336,6 +314,8 @@ const WorldMap = ({ countries }) => {
   const [loading, setLoading] = useState(true);
   const [selectedContinent, setSelectedContinent] = useState('world');
   const [continentStats, setContinentStats] = useState({});
+
+  const categories = CategoryDefinitions;
   
   // Fetch GeoJSON data
   useEffect(() => {
@@ -483,7 +463,8 @@ const WorldMap = ({ countries }) => {
       // Add interactive effects
       layer.on({
         click: () => {
-          window.location.href = `/country/${country.id || countryCode.toLowerCase()}`;
+          // Use _id if available, or fall back to countryCode
+          window.location.href = `/country/${country._id || countryCode}`;
         },
         mouseover: (e) => {
           const layer = e.target;

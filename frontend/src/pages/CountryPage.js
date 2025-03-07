@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api/axios';
+import { getCategoryColor } from '../components/styles/Colors';
 import styled from 'styled-components';
 
 const CountryPageContainer = styled.div`
@@ -47,16 +48,7 @@ const RankBadge = styled.span`
 
 const CategoryBadge = styled.span`
   display: inline-block;
-  background-color: ${({ category, theme }) => {
-    switch (category) {
-      case 'Excellent': return '#4CAF50';
-      case 'Favorable': return '#8BC34A';
-      case 'Moderate': return '#FFC107';
-      case 'Restrictive': return '#FF9800';
-      case 'Not favorable': return '#555555';
-      default: return theme.colors.accent;
-    }
-  }};
+  background-color: ${({ category }) => getCategoryColor(category)};
   color: white;
   font-weight: bold;
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
@@ -127,19 +119,46 @@ const CountryPage = () => {
   useEffect(() => {
     const fetchCountry = async () => {
       try {
-        const { data } = await axios.get(`/api/countries/${id}`);
+        // First, try with the direct API call (works for both MongoDB _id and route params)
+        const { data } = await apiClient.get(`/countries/${id}`);
+        console.log('Country data fetched:', data);
         setCountry(data);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching country data:', error);
         
-        if (error.response && error.response.status === 404) {
-          setError('Country not found. Please check the ID and try again.');
-        } else {
-          setError('Error fetching country data. Please try again later.');
+        // If that fails, try the specialized code endpoint
+        try {
+          const { data } = await apiClient.get(`/countries/code/${id}`);
+          console.log('Country data fetched by code:', data);
+          setCountry(data);
+          setLoading(false);
+        } catch (secondError) {
+          console.error('Second attempt error:', secondError);
+          
+          // As a last resort, try to fetch all countries and find the one that matches
+          try {
+            const { data: allCountries } = await apiClient.get(`/countries`);
+            const matchedCountry = allCountries.find(c => 
+              c._id === id || 
+              c.code.toLowerCase() === id.toLowerCase() || 
+              c.name.toLowerCase() === id.toLowerCase()
+            );
+            
+            if (matchedCountry) {
+              console.log('Found country in all countries:', matchedCountry);
+              setCountry(matchedCountry);
+              setLoading(false);
+            } else {
+              setError('Country not found. Please check the ID and try again.');
+              setLoading(false);
+            }
+          } catch (thirdError) {
+            console.error('Third attempt error:', thirdError);
+            setError('Error fetching country data. Please try again later.');
+            setLoading(false);
+          }
         }
-        
-        setLoading(false);
       }
     };
 
