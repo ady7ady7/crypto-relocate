@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, Tooltip, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, Tooltip, Marker, Popup } from 'react-leaflet';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
 import { getCategoryColor, getColorByRank, CategoryDefinitions, Colors } from './styles/Colors';
-
+import { Link } from 'react-router-dom';
 
 // Styled components for the UI
 const MapWrapper = styled.div`
@@ -42,6 +42,16 @@ const ContinentButton = styled.button`
   &:hover {
     background-color: ${props => props.active ? props.theme.colors.accentHover || '#E78318' : 'rgba(247, 147, 26, 0.1)'};
   }
+  
+  @media (max-width: 768px) {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
 `;
 
 const StatsTooltip = styled.div`
@@ -64,6 +74,11 @@ const StatsTooltip = styled.div`
   
   ${ContinentButton}:hover & {
     opacity: 1;
+  }
+  
+  @media (max-width: 768px) {
+    width: 180px;
+    padding: 8px;
   }
 `;
 
@@ -94,7 +109,6 @@ const RegionalInsight = styled.div`
   padding-top: 6px;
 `;
 
-// Updated styled components for legend
 const LegendContainer = styled.div`
   position: absolute;
   bottom: 20px;
@@ -196,6 +210,57 @@ const StyledMapContainer = styled(MapContainer)`
     font-size: 12px;
     color: #f0f0f0; /* Light text color for better readability */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    max-width: 250px;
+  }
+  
+  .country-popup {
+    background-color: rgba(24, 24, 24, 0.95);
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 13px;
+    color: #f0f0f0;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+    max-width: 280px;
+    
+    .leaflet-popup-content-wrapper {
+      background-color: rgba(24, 24, 24, 0.95);
+      border-radius: 4px;
+    }
+    
+    .leaflet-popup-tip {
+      background-color: rgba(24, 24, 24, 0.95);
+    }
+    
+    .leaflet-popup-close-button {
+      color: #f0f0f0;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    height: 400px;
+  }
+  
+  @media (max-width: 480px) {
+    height: 350px;
+  }
+`;
+
+const ViewDetailsButton = styled.button`
+  background-color: ${({ theme }) => theme.colors.accent || '#F7931A'};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.accentHover || '#E78318'};
   }
 `;
 
@@ -206,12 +271,12 @@ function MapController({ continent }) {
   // Define continent boundaries and zoom levels
   const continentViews = {
     world: { center: [20, 10], zoom: 2 },
-    europe: { center: [50, 10], zoom: 4 },
-    northAmerica: { center: [40, -95], zoom: 3 },
-    southAmerica: { center: [-20, -60], zoom: 3 },
-    asia: { center: [30, 90], zoom: 3 },
-    africa: { center: [0, 20], zoom: 3 },
-    oceania: { center: [-25, 135], zoom: 3.5 }
+    eu: { center: [50, 10], zoom: 4 },
+    na: { center: [40, -95], zoom: 3 },
+    sa: { center: [-20, -60], zoom: 3 },
+    as: { center: [30, 90], zoom: 3 },
+    af: { center: [0, 20], zoom: 3 },
+    oc: { center: [-25, 135], zoom: 3.5 }
   };
   
   useEffect(() => {
@@ -227,7 +292,7 @@ function MapController({ continent }) {
   return null;
 }
 
-// Map Legend component
+// Map Legend component - simplified version
 function MapLegend() {
   return (
     <LegendContainer>
@@ -256,78 +321,15 @@ function MapLegend() {
   );
 }
 
-// Update regionalInsights based on the top ranked countries in each region from your data
-const regionalInsights = {
-  world: {
-    topCountry: "United Arab Emirates", // Rank 1 in your data
-    keyTrend: "CARF implementation for 48+ countries by 2026"
-  },
-  europe: {
-    topCountry: "Switzerland", // Top European country
-    keyTrend: "MiCA regulations implementation by 2025"
-  },
-  asia: {
-    topCountry: "United Arab Emirates", // Top Asian/Middle Eastern country
-    keyTrend: "FATF Travel Rule adoption for cross-border transfers"
-  },
-  northAmerica: {
-    topCountry: "El Salvador", // Top North American country
-    keyTrend: "FIT Act may classify crypto as commodities vs. securities"
-  },
-  southAmerica: {
-    topCountry: "Paraguay", // Top South American country
-    keyTrend: "Brazil leads in regulated crypto ETFs and adoption"
-  },
-  africa: {
-    topCountry: "Mauritius", // Top African country (rank 8)
-    keyTrend: "Nigeria proposing 7.5% VAT on crypto services"
-  },
-  oceania: {
-    topCountry: "Palau", // Top Oceanian country (rank 23)
-    keyTrend: "Australia implementing FIFO accounting rules for traders"
-  }
-};
-
-// Comprehensive country-to-continent mapping (greatly expanded from research)
-const countryToContinentMap = {
-  // Europe (expanded from European research document)
-  'CH': 'europe', 'MT': 'europe', 'PT': 'europe', 'DE': 'europe', 'GB': 'europe', 'FR': 'europe', 'IT': 'europe',
-  'ES': 'europe', 'NL': 'europe', 'BE': 'europe', 'SE': 'europe', 'DK': 'europe', 'FI': 'europe', 'NO': 'europe',
-  'IE': 'europe', 'AT': 'europe', 'GR': 'europe', 'PL': 'europe', 'CZ': 'europe', 'HU': 'europe', 'RO': 'europe',
-  'SI': 'europe', 'EE': 'europe', 'HR': 'europe', 'BG': 'europe', 'SK': 'europe', 'LV': 'europe', 'LT': 'europe',
-  'CY': 'europe', 'LU': 'europe', 'IS': 'europe', 'GE': 'europe', 'MC': 'europe', 'RS': 'europe', 'LI': 'europe',
-  
-  // Asia (comprehensive list from Asian research document)
-  'AE': 'asia', 'SG': 'asia', 'JP': 'asia', 'KR': 'asia', 'MY': 'asia', 'TH': 'asia', 'TR': 'asia', 'IN': 'asia',
-  'ID': 'asia', 'VN': 'asia', 'PH': 'asia', 'SA': 'asia', 'QA': 'asia', 'IL': 'asia', 'KZ': 'asia', 'HK': 'asia',
-  'BN': 'asia', 'MM': 'asia', 'LK': 'asia', 'KW': 'asia', 'KH': 'asia', 'OM': 'asia', 'JO': 'asia', 'LB': 'asia',
-  'AM': 'asia', 'AZ': 'asia', 'BT': 'asia', 'CN': 'asia', 'IR': 'asia', 'IQ': 'asia', 'KP': 'asia',
-  
-  // North America (expanded with Caribbean nations)
-  'US': 'northAmerica', 'USA': 'northAmerica', 'CA': 'northAmerica', 'MX': 'northAmerica', 'PA': 'northAmerica', 'BS': 'northAmerica',
-  'CR': 'northAmerica', 'SV': 'northAmerica', 'GT': 'northAmerica', 'HN': 'northAmerica', 'NI': 'northAmerica',
-  'JM': 'northAmerica', 'DO': 'northAmerica', 'CU': 'northAmerica', 'HT': 'northAmerica', 'BZ': 'northAmerica',
-  'BB': 'northAmerica', 'LC': 'northAmerica', 'AG': 'northAmerica', 'KY': 'northAmerica', 'TT': 'northAmerica',
-  
-  // South America (all countries from South American research)
-  'BR': 'southAmerica', 'AR': 'southAmerica', 'CO': 'southAmerica', 'CL': 'southAmerica', 'PE': 'southAmerica',
-  'UY': 'southAmerica', 'EC': 'southAmerica', 'BO': 'southAmerica', 'PY': 'southAmerica', 'VE': 'southAmerica',
-  'GY': 'southAmerica', 'SR': 'southAmerica', 'GF': 'southAmerica',
-  
-  // Africa (comprehensive list from African research document)
-  'ZA': 'africa', 'EG': 'africa', 'NG': 'africa', 'KE': 'africa', 'MA': 'africa', 'GH': 'africa', 'TZ': 'africa',
-  'UG': 'africa', 'RW': 'africa', 'ET': 'africa', 'MU': 'africa', 'SC': 'africa', 'NA': 'africa', 'ZW': 'africa',
-  'CM': 'africa', 'CI': 'africa', 'SN': 'africa', 'TN': 'africa', 'DZ': 'africa', 'AO': 'africa', 'MZ': 'africa',
-  'ZM': 'africa', 'BW': 'africa', 'GA': 'africa', 'CD': 'africa', 'SD': 'africa', 'ML': 'africa', 'BF': 'africa',
-  
-  // Oceania (based on Oceanian research document)
-  'AU': 'oceania', 'NZ': 'oceania', 'FJ': 'oceania', 'PG': 'oceania', 'SB': 'oceania', 'VU': 'oceania',
-  'WS': 'oceania', 'TO': 'oceania', 'KI': 'oceania', 'MH': 'oceania', 'TV': 'oceania', 'NR': 'oceania',
-  'PW': 'oceania', 'CK': 'oceania', 'NU': 'oceania'
-};
-
 // Norway mainland position for custom marker
 const NORWAY_POSITION = [64.5, 15]; // Coordinates for mainland Norway
+
+// Helper function to detect touch devices
+const isTouchDevice = () => {
+  return (('ontouchstart' in window) ||
+     (navigator.maxTouchPoints > 0) ||
+     (navigator.msMaxTouchPoints > 0));
+};
 
 const WorldMap = ({ countries }) => {
   const [geoJsonData, setGeoJsonData] = useState(null);
@@ -335,7 +337,14 @@ const WorldMap = ({ countries }) => {
   const [selectedContinent, setSelectedContinent] = useState('world');
   const [continentStats, setContinentStats] = useState({});
   const [norwegianData, setNorwegianData] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [isTouch, setIsTouch] = useState(false);
   
+  // Detect touch device
+  useEffect(() => {
+    setIsTouch(isTouchDevice());
+  }, []);
+
   // Fetch GeoJSON data
   useEffect(() => {
     const fetchGeoData = async () => {
@@ -379,12 +388,12 @@ const WorldMap = ({ countries }) => {
       
       const stats = {
         world: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        europe: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        northAmerica: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        southAmerica: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        asia: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        africa: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
-        oceania: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 }
+        eu: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        na: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        sa: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        as: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        af: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        oc: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 }
       };
       
       // Count countries in each category per continent
@@ -416,7 +425,7 @@ const WorldMap = ({ countries }) => {
     }
   }, [countries]);
 
-  // Style function for GeoJSON features - updated with comprehensive categorization
+  // Style function for GeoJSON features
   const style = (feature) => {
     // Get country code from different possible property names
     const countryCode = feature.properties.ISO_A2 || 
@@ -476,9 +485,69 @@ const WorldMap = ({ countries }) => {
     };
   };
   
-  // Add tooltips and interactions to each country - enhanced with detailed research info
+  // Create tooltip content
+  const createTooltipContent = (country, categoryName) => {
+    const color = getColorByRank(country.rank);
+    
+    return `
+      <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
+        <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
+        <br/>
+        <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
+        <br/>
+        <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Wealth Tax: ${country.wealthTax}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
+      </div>
+    `;
+  };
+  
+  // Handle click event for touch devices
+  const handleCountryClick = (e, country) => {
+    if (isTouch) {
+      setSelectedCountry(country);
+      
+      // Add popup at the clicked location
+      L.popup({
+        className: 'country-popup',
+        closeButton: true
+      })
+      .setLatLng(e.latlng)
+      .setContent(`
+        <div style="min-width: 220px; color: #f0f0f0;">
+          <strong style="font-size: 16px; color: #ffffff; display: block; margin-bottom: 8px;">${country.name}</strong>
+          <span style="color: ${getColorByRank(country.rank)}; font-weight: 600; display: block; margin-bottom: 10px;">
+            Rank: #${country.rank} - ${getCategoryName(country.rank)}
+          </span>
+          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Capital Gains Tax:</span> ${country.capitalGainsTaxShort || country.capitalGainsTax}</div>
+          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Wealth Tax:</span> ${country.wealthTax}</div>
+          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Residency Investment:</span> ${country.residencyInvestment}</div>
+          <div style="margin-bottom: 10px;"><span style="font-weight: 500;">Financial Services:</span> ${country.financialServices}</div>
+          <a href="/country/${country._id}" style="display: block; background-color: #F7931A; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: 500;">
+            View Country Details
+          </a>
+        </div>
+      `)
+      .openOn(e.target._map);
+    }
+  };
+  
+  // Get category name based on rank
+  const getCategoryName = (rank) => {
+    if (rank >= 1 && rank <= 10) return "Excellent";
+    if (rank >= 11 && rank <= 33) return "Favorable";
+    if (rank >= 34 && rank <= 62) return "Moderate";
+    if (rank >= 63 && rank <= 78) return "Restrictive";
+    return "Not Favorable";
+  };
+  
+  // Add tooltips and interactions to each country
   const onEachFeature = (feature, layer) => {
-    // Get country code from different possible property names, supporting multiple formats
+    // Get country code from different possible property names
     const countryCode = feature.properties.ISO_A2 || 
                        feature.properties.iso_a2 || 
                        (feature.properties.ISO_A3 ? feature.properties.ISO_A3.substring(0, 2) : null);
@@ -504,42 +573,31 @@ const WorldMap = ({ countries }) => {
     });
     
     if (country) {
-      // Get color by rank
-      const color = getColorByRank(country.rank);
-      
       // Get category name based on rank
-      let categoryName = "Unknown";
-      if (country.rank >= 1 && country.rank <= 10) categoryName = "Excellent";
-      else if (country.rank >= 11 && country.rank <= 33) categoryName = "Favorable";
-      else if (country.rank >= 34 && country.rank <= 62) categoryName = "Moderate";
-      else if (country.rank >= 63 && country.rank <= 78) categoryName = "Restrictive";
-      else categoryName = "Not Favorable";
+      const categoryName = getCategoryName(country.rank);
       
-      // Create simplified tooltip with less information
-      const tooltipContent = `
-        <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
-          <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
-          <br/>
-          <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
-          <br/>
-          <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
-          <br/>
-          <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
-          <br/>
-          <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
-        </div>
-      `;
+      // Create tooltip with detailed information
+      const tooltipContent = createTooltipContent(country, categoryName);
       
-      layer.bindTooltip(tooltipContent, { 
-        permanent: false,
-        direction: 'top',
-        className: 'country-tooltip'
-      });
+      if (!isTouch) {
+        // Desktop hover behavior
+        layer.bindTooltip(tooltipContent, { 
+          permanent: false,
+          direction: 'top',
+          className: 'country-tooltip'
+        });
+      }
       
-      // Add interactive effects
+      // Interactive effects
       layer.on({
-        click: () => {
-          window.location.href = `/country/${country._id || country.id || countryCode.toLowerCase()}`;
+        click: (e) => {
+          if (isTouch) {
+            // Mobile touch behavior
+            handleCountryClick(e, country);
+          } else {
+            // Desktop click behavior (navigate)
+            window.location.href = `/country/${country._id || country.id || countryCode.toLowerCase()}`;
+          }
         },
         mouseover: (e) => {
           const layer = e.target;
@@ -574,51 +632,107 @@ const WorldMap = ({ countries }) => {
     if (!norwegianData) return null;
     
     const color = getColorByRank(norwegianData.rank);
+    const categoryName = getCategoryName(norwegianData.rank);
     
-    // Get category name based on rank
-    let categoryName = "Unknown";
-    if (norwegianData.rank >= 1 && norwegianData.rank <= 10) categoryName = "Excellent";
-    else if (norwegianData.rank >= 11 && norwegianData.rank <= 33) categoryName = "Favorable";
-    else if (norwegianData.rank >= 34 && norwegianData.rank <= 62) categoryName = "Moderate";
-    else if (norwegianData.rank >= 63 && norwegianData.rank <= 78) categoryName = "Restrictive";
-    else categoryName = "Not Favorable";
-    
-    // Create simplified tooltip with less information
-    const tooltipContent = `
-      <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
-        <strong style="font-size: 14px; color: #ffffff;">${norwegianData.name}</strong>
-        <br/>
-        <span style="color: ${color}; font-weight: 600;">Rank: #${norwegianData.rank} - ${categoryName}</span>
-        <br/>
-        <small style="color: #e0e0e0;">Capital Gains Tax: ${norwegianData.capitalGainsTaxShort || norwegianData.capitalGainsTax}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Residency Investment: ${norwegianData.residencyInvestment}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Financial Services: ${norwegianData.financialServices}</small>
-      </div>
-    `;
+    const tooltipContent = createTooltipContent(norwegianData, categoryName);
   
     return (
       <Marker 
         position={NORWAY_POSITION} 
         opacity={0}
         eventHandlers={{
-          click: () => {
-            window.location.href = `/country/${norwegianData._id || norwegianData.id || 'no'}`;
+          click: (e) => {
+            if (isTouch) {
+              handleCountryClick(e, norwegianData);
+            } else {
+              window.location.href = `/country/${norwegianData._id || norwegianData.id || 'no'}`;
+            }
           }
         }}
       >
-        <Tooltip 
-          direction="right" 
-          offset={[10, 0]} 
-          className="country-tooltip"
-          permanent={false}
-          interactive={true}
-        >
-          <div dangerouslySetInnerHTML={{ __html: tooltipContent }} />
-        </Tooltip>
+        {!isTouch ? (
+          <Tooltip 
+            direction="right" 
+            offset={[10, 0]} 
+            className="country-tooltip"
+            permanent={false}
+            interactive={true}
+          >
+            <div dangerouslySetInnerHTML={{ __html: tooltipContent }} />
+          </Tooltip>
+        ) : null}
       </Marker>
     );
+  };
+
+  // Update regionalInsights based on the top ranked countries in each region
+  const regionalInsights = {
+    world: {
+      topCountry: "United Arab Emirates", // Rank 1 in your data
+      keyTrend: "CARF implementation for 48+ countries by 2026"
+    },
+    eu: {
+      topCountry: "Switzerland", // Top European country
+      keyTrend: "MiCA regulations implementation by 2025"
+    },
+    as: {
+      topCountry: "United Arab Emirates", // Top Asian/Middle Eastern country
+      keyTrend: "FATF Travel Rule adoption for cross-border transfers"
+    },
+    na: {
+      topCountry: "El Salvador", // Top North American country
+      keyTrend: "FIT Act may classify crypto as commodities vs. securities"
+    },
+    sa: {
+      topCountry: "Paraguay", // Top South American country
+      keyTrend: "Brazil leads in regulated crypto ETFs and adoption"
+    },
+    af: {
+      topCountry: "Mauritius", // Top African country (rank 8)
+      keyTrend: "Nigeria proposing 7.5% VAT on crypto services"
+    },
+    oc: {
+      topCountry: "Palau", // Top Oceanian country (rank 23)
+      keyTrend: "Australia implementing FIFO accounting rules for traders"
+    }
+  };
+
+  // Comprehensive country-to-continent mapping (greatly expanded from research)
+  const countryToContinentMap = {
+    // Europe (expanded from European research document)
+    'CH': 'eu', 'MT': 'eu', 'PT': 'eu', 'DE': 'eu', 'GB': 'eu', 'FR': 'eu', 'IT': 'eu',
+    'ES': 'eu', 'NL': 'eu', 'BE': 'eu', 'SE': 'eu', 'DK': 'eu', 'FI': 'eu', 'NO': 'eu',
+    'IE': 'eu', 'AT': 'eu', 'GR': 'eu', 'PL': 'eu', 'CZ': 'eu', 'HU': 'eu', 'RO': 'eu',
+    'SI': 'eu', 'EE': 'eu', 'HR': 'eu', 'BG': 'eu', 'SK': 'eu', 'LV': 'eu', 'LT': 'eu',
+    'CY': 'eu', 'LU': 'eu', 'IS': 'eu', 'GE': 'eu', 'MC': 'eu', 'RS': 'eu', 'LI': 'eu',
+    
+    // Asia (comprehensive list from Asian research document)
+    'AE': 'as', 'SG': 'as', 'JP': 'as', 'KR': 'as', 'MY': 'as', 'TH': 'as', 'TR': 'as', 'IN': 'as',
+    'ID': 'as', 'VN': 'as', 'PH': 'as', 'SA': 'as', 'QA': 'as', 'IL': 'as', 'KZ': 'as', 'HK': 'as',
+    'BN': 'as', 'MM': 'as', 'LK': 'as', 'KW': 'as', 'KH': 'as', 'OM': 'as', 'JO': 'as', 'LB': 'as',
+    'AM': 'as', 'AZ': 'as', 'BT': 'as', 'CN': 'as', 'IR': 'as', 'IQ': 'as', 'KP': 'as',
+    
+    // North America (expanded with Caribbean nations)
+    'US': 'na', 'USA': 'na', 'CA': 'na', 'MX': 'na', 'PA': 'na', 'BS': 'na',
+    'CR': 'na', 'SV': 'na', 'GT': 'na', 'HN': 'na', 'NI': 'na',
+    'JM': 'na', 'DO': 'na', 'CU': 'na', 'HT': 'na', 'BZ': 'na',
+    'BB': 'na', 'LC': 'na', 'AG': 'na', 'KY': 'na', 'TT': 'na',
+    
+    // South America (all countries from South American research)
+    'BR': 'sa', 'AR': 'sa', 'CO': 'sa', 'CL': 'sa', 'PE': 'sa',
+    'UY': 'sa', 'EC': 'sa', 'BO': 'sa', 'PY': 'sa', 'VE': 'sa',
+    'GY': 'sa', 'SR': 'sa', 'GF': 'sa',
+    
+    // Africa (comprehensive list from African research document)
+    'ZA': 'af', 'EG': 'af', 'NG': 'af', 'KE': 'af', 'MA': 'af', 'GH': 'af', 'TZ': 'af',
+    'UG': 'af', 'RW': 'af', 'ET': 'af', 'MU': 'af', 'SC': 'af', 'NA': 'af', 'ZW': 'af',
+    'CM': 'af', 'CI': 'af', 'SN': 'af', 'TN': 'af', 'DZ': 'af', 'AO': 'af', 'MZ': 'af',
+    'ZM': 'af', 'BW': 'af', 'GA': 'af', 'CD': 'af', 'SD': 'af', 'ML': 'af', 'BF': 'af',
+    
+    // Oceania (based on Oceanian research document)
+    'AU': 'oc', 'NZ': 'oc', 'FJ': 'oc', 'PG': 'oc', 'SB': 'oc', 'VU': 'oc',
+    'WS': 'oc', 'TO': 'oc', 'KI': 'oc', 'MH': 'oc', 'TV': 'oc', 'NR': 'oc',
+    'PW': 'oc', 'CK': 'oc', 'NU': 'oc'
   };
   
   return (
@@ -650,12 +764,12 @@ const WorldMap = ({ countries }) => {
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'europe'} 
-          onClick={() => setSelectedContinent('europe')}
+          active={selectedContinent === 'eu'} 
+          onClick={() => setSelectedContinent('eu')}
         >
           EU
           <StatsTooltip>
-            {Object.entries(continentStats.europe || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.eu || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -668,19 +782,19 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.europe.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.europe.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.eu.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.eu.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'northAmerica'} 
-          onClick={() => setSelectedContinent('northAmerica')}
+          active={selectedContinent === 'na'} 
+          onClick={() => setSelectedContinent('na')}
         >
           NA
           <StatsTooltip>
-            {Object.entries(continentStats.northAmerica || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.na || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -693,19 +807,19 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.northAmerica.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.northAmerica.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.na.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.na.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'southAmerica'} 
-          onClick={() => setSelectedContinent('southAmerica')}
+          active={selectedContinent === 'sa'} 
+          onClick={() => setSelectedContinent('sa')}
         >
           SA
           <StatsTooltip>
-            {Object.entries(continentStats.southAmerica || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.sa || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -718,19 +832,19 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.southAmerica.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.southAmerica.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.sa.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.sa.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'asia'} 
-          onClick={() => setSelectedContinent('asia')}
+          active={selectedContinent === 'as'} 
+          onClick={() => setSelectedContinent('as')}
         >
           AS
           <StatsTooltip>
-            {Object.entries(continentStats.asia || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.as || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -743,19 +857,19 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.asia.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.asia.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.as.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.as.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'africa'} 
-          onClick={() => setSelectedContinent('africa')}
+          active={selectedContinent === 'af'} 
+          onClick={() => setSelectedContinent('af')}
         >
           AF
           <StatsTooltip>
-            {Object.entries(continentStats.africa || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.af || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -768,19 +882,19 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.africa.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.africa.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.af.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.af.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'oceania'} 
-          onClick={() => setSelectedContinent('oceania')}
+          active={selectedContinent === 'oc'} 
+          onClick={() => setSelectedContinent('oc')}
         >
           OC
           <StatsTooltip>
-            {Object.entries(continentStats.oceania || {}).map(([cat, count]) => count > 0 && (
+            {Object.entries(continentStats.oc || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
                 cat === 'excellent' ? Colors.countryExcellent :
                 cat === 'favorable' ? Colors.countryFavorable :
@@ -793,8 +907,8 @@ const WorldMap = ({ countries }) => {
               </StatItem>
             ))}
             <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.oceania.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.oceania.keyTrend}
+              <strong>Top Country:</strong> {regionalInsights.oc.topCountry}<br/>
+              <strong>Trend:</strong> {regionalInsights.oc.keyTrend}
             </RegionalInsight>
           </StatsTooltip>
         </ContinentButton>
