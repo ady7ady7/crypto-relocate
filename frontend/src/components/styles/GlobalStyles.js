@@ -1,7 +1,9 @@
+// frontend/src/components/styles/GlobalStyles.js
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&display=swap');
+  /* Import Montserrat from Google Fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
   
   * {
     box-sizing: border-box;
@@ -9,11 +11,16 @@ const GlobalStyles = createGlobalStyle`
     padding: 0;
   }
   
-  body {
-    font-family: 'Montserrat', sans-serif;
+  html, body {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: ${({ theme }) => theme.colors.background};
     color: ${({ theme }) => theme.colors.text};
     min-height: 100vh;
+  }
+  
+  /* Make sure inputs, buttons and other elements also use the font */
+  button, input, select, textarea {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   
   a {

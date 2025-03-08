@@ -94,42 +94,88 @@ const RegionalInsight = styled.div`
   padding-top: 6px;
 `;
 
+// Updated styled components for legend
 const LegendContainer = styled.div`
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background-color: rgba(30, 30, 30, 0.9);
+  background-color: rgba(30, 30, 30, 0.85);
   border: 1px solid ${({ theme }) => theme.colors.border || '#2D2D2D'};
   border-radius: 4px;
-  padding: 10px;
+  padding: 8px 10px;
   z-index: 1000;
-  width: 200px;
+  width: auto;
+  max-width: 160px;
+  
+  @media (max-width: 768px) {
+    bottom: 10px;
+    right: 10px;
+    max-width: 120px;
+    padding: 6px 8px;
+  }
+  
+  @media (max-width: 480px) {
+    max-width: 100px;
+    padding: 4px 6px;
+  }
 `;
 
 const LegendTitle = styled.div`
   font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 6px;
+  font-size: 12px;
   color: #fff;
+  
+  @media (max-width: 768px) {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 10px;
+    margin-bottom: 3px;
+  }
 `;
 
 const LegendItem = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
-  font-size: 12px;
+  margin-bottom: 4px;
+  font-size: 11px;
   
   &:last-child {
     margin-bottom: 0;
   }
+  
+  @media (max-width: 768px) {
+    font-size: 10px;
+    margin-bottom: 3px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
 `;
 
 const LegendColor = styled.div`
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   border-radius: 3px;
   background-color: ${props => props.color};
-  margin-right: 8px;
+  margin-right: 6px;
+  
+  @media (max-width: 768px) {
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+  }
 `;
 
 const StyledMapContainer = styled(MapContainer)`
@@ -185,26 +231,26 @@ function MapController({ continent }) {
 function MapLegend() {
   return (
     <LegendContainer>
-      <LegendTitle>Crypto-Friendliness Ranking</LegendTitle>
+      <LegendTitle>Crypto-Friendliness</LegendTitle>
       <LegendItem>
         <LegendColor color={Colors.countryExcellent} />
-        <span>Excellent (Ranks 1-10): Minimal taxation</span>
+        <span>Excellent</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={Colors.countryFavorable} />
-        <span>Favorable (Ranks 11-33): Low taxes</span>
+        <span>Favorable</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={Colors.countryModerate} />
-        <span>Moderate (Ranks 34-62): Standard taxes</span>
+        <span>Moderate</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={Colors.countryRestrictive} />
-        <span>Restrictive (Ranks 63-78): High taxes</span>
+        <span>Restrictive</span>
       </LegendItem>
       <LegendItem>
         <LegendColor color={Colors.countryNotFavorable} />
-        <span>Not favorable (Ranks 79+): Prohibitive</span>
+        <span>Not favorable</span>
       </LegendItem>
     </LegendContainer>
   );
@@ -607,7 +653,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'europe'} 
           onClick={() => setSelectedContinent('europe')}
         >
-          Europe
+          EU
           <StatsTooltip>
             {Object.entries(continentStats.europe || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
@@ -632,7 +678,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'northAmerica'} 
           onClick={() => setSelectedContinent('northAmerica')}
         >
-          North America
+          NA
           <StatsTooltip>
             {Object.entries(continentStats.northAmerica || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
@@ -657,7 +703,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'southAmerica'} 
           onClick={() => setSelectedContinent('southAmerica')}
         >
-          South America
+          SA
           <StatsTooltip>
             {Object.entries(continentStats.southAmerica || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
@@ -682,7 +728,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'asia'} 
           onClick={() => setSelectedContinent('asia')}
         >
-          Asia
+          AS
           <StatsTooltip>
             {Object.entries(continentStats.asia || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
@@ -707,7 +753,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'africa'} 
           onClick={() => setSelectedContinent('africa')}
         >
-          Africa
+          AF
           <StatsTooltip>
             {Object.entries(continentStats.africa || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
@@ -732,7 +778,7 @@ const WorldMap = ({ countries }) => {
           active={selectedContinent === 'oceania'} 
           onClick={() => setSelectedContinent('oceania')}
         >
-          Oceania
+          OC
           <StatsTooltip>
             {Object.entries(continentStats.oceania || {}).map(([cat, count]) => count > 0 && (
               <StatItem color={
