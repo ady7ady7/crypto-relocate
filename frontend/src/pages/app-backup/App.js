@@ -1,22 +1,22 @@
-// frontend/src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import GlobalStyles from './components/styles/GlobalStyles';
 import { theme } from './components/styles/Theme';
-import EnhancedHeader from './components/EnhancedHeader';
+import Header from './components/Header';
 import HomePage from './pages/HomePage';
-import EnhancedCountryPage from './pages/EnhancedCountryPage';
+import CountryPage from './pages/CountryPage';
+
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
       <Router>
-        <EnhancedHeader />
+        <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/country/:id" element={<EnhancedCountryPage />} />
+          <Route path="/country/:id" element={<CountryPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

@@ -1,14 +1,8 @@
-// frontend/src/pages/HomePage.js
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import WorldMap from '../components/WorldMap';
-import EnhancedCountryRankings from '../components/EnhancedCountryRankings';
-import { MapSkeleton } from '../components/Skeletons';
-import { ScrollReveal, fadeInAnimation } from '../components/animations';
-import FeaturedCountries from '../components/FeaturedCountries';
-import FeatureHighlights from '../components/FeatureHighlights';
-import NewsletterSignup from '../components/NewsletterSignup';
+import CountryRankings from '../components/CountryRankings';
 
 const HomePageContainer = styled.div`
   max-width: 1200px;
@@ -19,7 +13,6 @@ const HomePageContainer = styled.div`
 const Hero = styled.div`
   text-align: center;
   margin-bottom: ${({ theme }) => theme.spacing.xxl};
-  ${fadeInAnimation}
 `;
 
 const Title = styled.h1`
@@ -43,12 +36,6 @@ const MapContainer = styled.div`
   box-shadow: ${({ theme }) => theme.boxShadow.md};
 `;
 
-const SectionDivider = styled.hr`
-  border: none;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  margin: ${({ theme }) => theme.spacing.xxl} 0;
-`;
-
 const HomePage = () => {
   const [countries, setCountries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,10 +46,7 @@ const HomePage = () => {
       try {
         const { data } = await axios.get('http://localhost:5000/api/countries');
         setCountries(data);
-        // Simulate loading for a better UI experience with skeletons
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
+        setLoading(false);
       } catch (error) {
         setError('Error fetching countries data. Please try again later.');
         setLoading(false);
@@ -83,51 +67,20 @@ const HomePage = () => {
       </Hero>
 
       {loading ? (
-        <ScrollReveal>
-          <MapSkeleton />
-        </ScrollReveal>
+        <div>Loading...</div>
       ) : error ? (
-        <ErrorMessage>{error}</ErrorMessage>
+        <div>{error}</div>
       ) : (
         <>
-          <ScrollReveal>
-            <MapContainer>
-              <WorldMap countries={countries} />
-            </MapContainer>
-          </ScrollReveal>
+          <MapContainer>
+            <WorldMap countries={countries} />
+          </MapContainer>
           
-          {/* Featured Countries Section */}
-          <FeaturedCountries countries={countries} />
-          
-          <SectionDivider />
-          
-          {/* Feature Highlights Section */}
-          <FeatureHighlights />
-          
-          <SectionDivider />
-          
-          {/* Country Rankings Section */}
-          <EnhancedCountryRankings countries={countries} />
-          
-          <SectionDivider />
-          
-          {/* Newsletter Signup Section */}
-          <NewsletterSignup />
+          <CountryRankings countries={countries} />
         </>
       )}
     </HomePageContainer>
   );
 };
-
-// Error message component
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: ${({ theme }) => theme.spacing.xl};
-  background-color: ${({ theme }) => theme.colors.danger}22;
-  border: 1px solid ${({ theme }) => theme.colors.danger};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  color: ${({ theme }) => theme.colors.danger};
-  margin: ${({ theme }) => theme.spacing.xl} 0;
-`;
 
 export default HomePage;
