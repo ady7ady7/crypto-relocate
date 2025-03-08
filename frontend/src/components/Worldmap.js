@@ -469,22 +469,18 @@ const WorldMap = ({ countries }) => {
       else if (country.rank >= 63 && country.rank <= 78) categoryName = "Restrictive";
       else categoryName = "Not Favorable";
       
-      // Create tooltip with more detailed information based on research - with improved readability
+      // Create simplified tooltip with less information
       const tooltipContent = `
         <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
           <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
           <br/>
           <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
           <br/>
-          <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTax}</small>
-          <br/>
-          <small style="color: #e0e0e0;">Wealth Tax: ${country.wealthTax}</small>
+          <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
           <br/>
           <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
           <br/>
           <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
-          ${country.futureRisks ? `<br/><small style="color: #e0e0e0;">Future Risks: ${country.futureRisks}</small>` : ''}
-          ${country.costOfLivingIndex ? `<br/><small style="color: #e0e0e0;">Cost of Living: ${country.costOfLivingIndex}</small>` : ''}
         </div>
       `;
       
@@ -541,21 +537,18 @@ const WorldMap = ({ countries }) => {
     else if (norwegianData.rank >= 63 && norwegianData.rank <= 78) categoryName = "Restrictive";
     else categoryName = "Not Favorable";
     
+    // Create simplified tooltip with less information
     const tooltipContent = `
       <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
         <strong style="font-size: 14px; color: #ffffff;">${norwegianData.name}</strong>
         <br/>
         <span style="color: ${color}; font-weight: 600;">Rank: #${norwegianData.rank} - ${categoryName}</span>
         <br/>
-        <small style="color: #e0e0e0;">Capital Gains Tax: ${norwegianData.capitalGainsTax}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Wealth Tax: ${norwegianData.wealthTax}</small>
+        <small style="color: #e0e0e0;">Capital Gains Tax: ${norwegianData.capitalGainsTaxShort || norwegianData.capitalGainsTax}</small>
         <br/>
         <small style="color: #e0e0e0;">Residency Investment: ${norwegianData.residencyInvestment}</small>
         <br/>
         <small style="color: #e0e0e0;">Financial Services: ${norwegianData.financialServices}</small>
-        ${norwegianData.futureRisks ? `<br/><small style="color: #e0e0e0;">Future Risks: ${norwegianData.futureRisks}</small>` : ''}
-        ${norwegianData.costOfLivingIndex ? `<br/><small style="color: #e0e0e0;">Cost of Living: ${norwegianData.costOfLivingIndex}</small>` : ''}
       </div>
     `;
   
