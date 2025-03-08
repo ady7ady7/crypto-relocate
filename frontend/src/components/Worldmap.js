@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, Tooltip, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, Tooltip } from 'react-leaflet';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
-import { getCategoryColor, getColorByRank, CategoryDefinitions, Colors } from './styles/Colors';
+import { getCategoryColor, getColorByRank, Colors } from './styles/Colors';
 import { Link } from 'react-router-dom';
 
 // Styled components for the UI
@@ -246,24 +246,6 @@ const StyledMapContainer = styled(MapContainer)`
   }
 `;
 
-const ViewDetailsButton = styled.button`
-  background-color: ${({ theme }) => theme.colors.accent || '#F7931A'};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  cursor: pointer;
-  width: 100%;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.accentHover || '#E78318'};
-  }
-`;
-
 // MapController component to handle map view changes
 function MapController({ continent }) {
   const map = useMap();
@@ -321,14 +303,20 @@ function MapLegend() {
   );
 }
 
-// Norway mainland position for custom marker
-const NORWAY_POSITION = [64.5, 15]; // Coordinates for mainland Norway
-
 // Helper function to detect touch devices
 const isTouchDevice = () => {
   return (('ontouchstart' in window) ||
      (navigator.maxTouchPoints > 0) ||
      (navigator.msMaxTouchPoints > 0));
+};
+
+// Get category name based on rank - used in multiple places
+const getCategoryName = (rank) => {
+  if (rank >= 1 && rank <= 10) return "Excellent";
+  if (rank >= 11 && rank <= 33) return "Favorable";
+  if (rank >= 34 && rank <= 62) return "Moderate";
+  if (rank >= 63 && rank <= 78) return "Restrictive";
+  return "Not Favorable";
 };
 
 const WorldMap = ({ countries }) => {
@@ -339,6 +327,7 @@ const WorldMap = ({ countries }) => {
   const [norwegianData, setNorwegianData] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [isTouch, setIsTouch] = useState(false);
+  const mapRef = useRef(null);
   
   // Detect touch device
   useEffect(() => {
@@ -425,6 +414,65 @@ const WorldMap = ({ countries }) => {
     }
   }, [countries]);
 
+  // Create tooltip content
+  const createTooltipContent = (country, categoryName) => {
+    const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+    
+    return `
+      <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
+        <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
+        <br/>
+        <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
+        <br/>
+        <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
+      </div>
+    `;
+  };
+  
+  // Create popup content
+  const createPopupContent = (country) => {
+    const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+    const categoryName = getCategoryName(country.rank);
+    
+    return `
+      <div style="min-width: 220px; color: #f0f0f0;">
+        <strong style="font-size: 16px; color: #ffffff; display: block; margin-bottom: 8px;">${country.name}</strong>
+        <span style="color: ${color}; font-weight: 600; display: block; margin-bottom: 10px;">
+          Rank: #${country.rank} - ${categoryName}
+        </span>
+        <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Capital Gains Tax:</span> ${country.capitalGainsTaxShort || country.capitalGainsTax}</div>
+        <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Residency Investment:</span> ${country.residencyInvestment}</div>
+        <div style="margin-bottom: 10px;"><span style="font-weight: 500;">Financial Services:</span> ${country.financialServices}</div>
+        <a href="/country/${country._id}" style="display: block; background-color: #F7931A; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: 500;">
+          View Country Details
+        </a>
+      </div>
+    `;
+  };
+  
+  // Handle click event for touch devices
+  const handleCountryClick = (e, country, map) => {
+    if (isTouch) {
+      setSelectedCountry(country);
+      
+      // Add popup at the clicked location
+      L.popup({
+        className: 'country-popup',
+        closeButton: true
+      })
+      .setLatLng(e.latlng)
+      .setContent(createPopupContent(country))
+      .openOn(map);
+    } else {
+      // Desktop click behavior (navigate)
+      window.location.href = `/country/${country._id || country.id || country.code.toLowerCase()}`;
+    }
+  };
+  
   // Style function for GeoJSON features
   const style = (feature) => {
     // Get country code from different possible property names
@@ -442,17 +490,6 @@ const WorldMap = ({ countries }) => {
       };
     }
     
-    // Skip Norway - we'll add a custom marker for it
-    if (countryCode === 'NO') {
-      return {
-        fillColor: Colors.countryModerate,
-        fillOpacity: 0.7,
-        weight: 1,
-        color: '#FFFFFF',
-        opacity: 0.5
-      };
-    }
-    
     // Find matching country in our data - try both the exact code and USA/US alternatives for United States
     const country = countries.find(c => {
       // Handle special case for United States (both US and USA codes might be used)
@@ -463,8 +500,8 @@ const WorldMap = ({ countries }) => {
     });
     
     if (country) {
-      // Get color by rank using the getColorByRank function
-      const color = getColorByRank(country.rank);
+      // Get color by rank using the imported getColorByRank function
+      const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
       
       return {
         fillColor: color,
@@ -485,77 +522,12 @@ const WorldMap = ({ countries }) => {
     };
   };
   
-  // Create tooltip content
-  const createTooltipContent = (country, categoryName) => {
-    const color = getColorByRank(country.rank);
-    
-    return `
-      <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
-        <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
-        <br/>
-        <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
-        <br/>
-        <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Wealth Tax: ${country.wealthTax}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Residency Investment: ${country.residencyInvestment}</small>
-        <br/>
-        <small style="color: #e0e0e0;">Financial Services: ${country.financialServices}</small>
-      </div>
-    `;
-  };
-  
-  // Handle click event for touch devices
-  const handleCountryClick = (e, country) => {
-    if (isTouch) {
-      setSelectedCountry(country);
-      
-      // Add popup at the clicked location
-      L.popup({
-        className: 'country-popup',
-        closeButton: true
-      })
-      .setLatLng(e.latlng)
-      .setContent(`
-        <div style="min-width: 220px; color: #f0f0f0;">
-          <strong style="font-size: 16px; color: #ffffff; display: block; margin-bottom: 8px;">${country.name}</strong>
-          <span style="color: ${getColorByRank(country.rank)}; font-weight: 600; display: block; margin-bottom: 10px;">
-            Rank: #${country.rank} - ${getCategoryName(country.rank)}
-          </span>
-          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Capital Gains Tax:</span> ${country.capitalGainsTaxShort || country.capitalGainsTax}</div>
-          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Wealth Tax:</span> ${country.wealthTax}</div>
-          <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Residency Investment:</span> ${country.residencyInvestment}</div>
-          <div style="margin-bottom: 10px;"><span style="font-weight: 500;">Financial Services:</span> ${country.financialServices}</div>
-          <a href="/country/${country._id}" style="display: block; background-color: #F7931A; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: 500;">
-            View Country Details
-          </a>
-        </div>
-      `)
-      .openOn(e.target._map);
-    }
-  };
-  
-  // Get category name based on rank
-  const getCategoryName = (rank) => {
-    if (rank >= 1 && rank <= 10) return "Excellent";
-    if (rank >= 11 && rank <= 33) return "Favorable";
-    if (rank >= 34 && rank <= 62) return "Moderate";
-    if (rank >= 63 && rank <= 78) return "Restrictive";
-    return "Not Favorable";
-  };
-  
   // Add tooltips and interactions to each country
   const onEachFeature = (feature, layer) => {
     // Get country code from different possible property names
     const countryCode = feature.properties.ISO_A2 || 
                        feature.properties.iso_a2 || 
                        (feature.properties.ISO_A3 ? feature.properties.ISO_A3.substring(0, 2) : null);
-    
-    // Skip Norway as we'll handle it separately
-    if (countryCode === 'NO') {
-      return;
-    }
     
     // Find a proper english name for the country
     const countryName = feature.properties.ADMIN || 
@@ -591,13 +563,11 @@ const WorldMap = ({ countries }) => {
       // Interactive effects
       layer.on({
         click: (e) => {
-          if (isTouch) {
-            // Mobile touch behavior
-            handleCountryClick(e, country);
-          } else {
-            // Desktop click behavior (navigate)
-            window.location.href = `/country/${country._id || country.id || countryCode.toLowerCase()}`;
-          }
+          // Get the map instance
+          const map = e.target._map || mapRef.current;
+          
+          // Handle click based on device type
+          handleCountryClick(e, country, map);
         },
         mouseover: (e) => {
           const layer = e.target;
@@ -625,44 +595,6 @@ const WorldMap = ({ countries }) => {
         className: 'country-tooltip'
       });
     }
-  };
-
-  // Custom Norway tooltip component
-  const NorwayTooltip = () => {
-    if (!norwegianData) return null;
-    
-    const color = getColorByRank(norwegianData.rank);
-    const categoryName = getCategoryName(norwegianData.rank);
-    
-    const tooltipContent = createTooltipContent(norwegianData, categoryName);
-  
-    return (
-      <Marker 
-        position={NORWAY_POSITION} 
-        opacity={0}
-        eventHandlers={{
-          click: (e) => {
-            if (isTouch) {
-              handleCountryClick(e, norwegianData);
-            } else {
-              window.location.href = `/country/${norwegianData._id || norwegianData.id || 'no'}`;
-            }
-          }
-        }}
-      >
-        {!isTouch ? (
-          <Tooltip 
-            direction="right" 
-            offset={[10, 0]} 
-            className="country-tooltip"
-            permanent={false}
-            interactive={true}
-          >
-            <div dangerouslySetInnerHTML={{ __html: tooltipContent }} />
-          </Tooltip>
-        ) : null}
-      </Marker>
-    );
   };
 
   // Update regionalInsights based on the top ranked countries in each region
@@ -928,6 +860,10 @@ const WorldMap = ({ countries }) => {
         wheelDebounceTime={100}
         wheelPxPerZoomLevel={200}
         preferCanvas={true}
+        ref={mapRef}
+        whenCreated={(map) => {
+          mapRef.current = map;
+        }}
       >
         {/* Use a minimal base map without labels */}
         <TileLayer
@@ -942,9 +878,6 @@ const WorldMap = ({ countries }) => {
             onEachFeature={onEachFeature}
           />
         )}
-        
-        {/* Add custom Norway tooltip */}
-        {norwegianData && <NorwayTooltip />}
         
         <MapController continent={selectedContinent} />
         <MapLegend />
