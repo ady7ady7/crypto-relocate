@@ -6,18 +6,13 @@ import styled from 'styled-components';
 // Import the new components
 import InfiniteScroll from './InfiniteScroll';
 import { ScrollReveal, StaggeredList, hoverElevate } from './animations';
-import { TaxIcon, WealthIcon, ResidencyIcon, BankIcon, RiskIcon, SortIcon, FilterIcon } from './illustrations/Icons';
+import { TaxIcon, ResidencyIcon, BankIcon, RiskIcon, SortIcon, FilterIcon } from './illustrations/Icons';
 import { CountryCardSkeleton } from './Skeletons';
 import { ReadMore, InfoTooltip, Modal } from './disclosure';
 import { RadarChart, HorizontalBarChart } from './charts/ComparisonChart';
 import { getCategoryColor, getColorByRank } from './styles/Colors';
 
 const PAGE_SIZE = 10;
-
-// Helper function to get category color
-const getCategoryColorForComponent = (category) => {
-  return getCategoryColor(category);
-};
 
 const EnhancedCountryRankings = ({ countries }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,11 +43,11 @@ const EnhancedCountryRankings = ({ countries }) => {
           comparison = a.name.localeCompare(b.name);
         } else if (sortKey === 'capitalGainsTax') {
           // Parse tax rates for comparison
-          const aValue = a.capitalGainsTax.includes('%') 
-            ? parseFloat(a.capitalGainsTax) 
+          const aValue = (a.capitalGainsTaxShort || a.capitalGainsTax).includes('%') 
+            ? parseFloat(a.capitalGainsTaxShort || a.capitalGainsTax) 
             : 100; // Default high value for non-parseable
-          const bValue = b.capitalGainsTax.includes('%') 
-            ? parseFloat(b.capitalGainsTax) 
+          const bValue = (b.capitalGainsTaxShort || b.capitalGainsTax).includes('%') 
+            ? parseFloat(b.capitalGainsTaxShort || b.capitalGainsTax) 
             : 100;
           comparison = aValue - bValue;
         }
@@ -88,11 +83,11 @@ const EnhancedCountryRankings = ({ countries }) => {
           } else if (sortKey === 'name') {
             comparison = a.name.localeCompare(b.name);
           } else if (sortKey === 'capitalGainsTax') {
-            const aValue = a.capitalGainsTax.includes('%') 
-              ? parseFloat(a.capitalGainsTax) 
+            const aValue = (a.capitalGainsTaxShort || a.capitalGainsTax).includes('%') 
+              ? parseFloat(a.capitalGainsTaxShort || a.capitalGainsTax) 
               : 100;
-            const bValue = b.capitalGainsTax.includes('%') 
-              ? parseFloat(b.capitalGainsTax) 
+            const bValue = (b.capitalGainsTaxShort || b.capitalGainsTax).includes('%') 
+              ? parseFloat(b.capitalGainsTaxShort || b.capitalGainsTax) 
               : 100;
             comparison = aValue - bValue;
           }
@@ -142,8 +137,8 @@ const EnhancedCountryRankings = ({ countries }) => {
     // For radar chart
     const radarData = selectedCountries.map(country => {
       // Parse numeric values from tax percentages and other metrics
-      const capitalGainsTax = country.capitalGainsTax.includes('%') 
-        ? 100 - parseFloat(country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
+      const capitalGainsTax = (country.capitalGainsTaxShort || country.capitalGainsTax).includes('%') 
+        ? 100 - parseFloat(country.capitalGainsTaxShort || country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
         : 0;
       
       // Map financial services to numeric values
@@ -175,9 +170,11 @@ const EnhancedCountryRankings = ({ countries }) => {
       // Risk score (inverted for better visualization)
       const riskScore = 70; // Default moderate risk
       
+      const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+      
       return {
         name: country.name,
-        color: getCategoryColorForComponent(country.category),
+        color: countryColor,
         values: [
           capitalGainsTax,           // Tax friendliness
           country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
@@ -189,11 +186,15 @@ const EnhancedCountryRankings = ({ countries }) => {
     });
     
     // For bar chart
-    const barData = selectedCountries.map(country => ({
-      label: country.name,
-      value: 100 - country.rank, // Invert rank for visualization (higher is better)
-      color: getCategoryColorForComponent(country.category)
-    }));
+    const barData = selectedCountries.map(country => {
+      const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+      
+      return {
+        label: country.name,
+        value: 100 - country.rank, // Invert rank for visualization (higher is better)
+        color: countryColor
+      };
+    });
     
     return (
       <ComparisonContainer>
@@ -323,15 +324,6 @@ const EnhancedCountryRankings = ({ countries }) => {
                 <SortIndicator direction={sortOrder === 'asc' ? 'up' : 'down'} />
               )}
             </div>
-            <div className="wealth-cell">
-              <div className="header-with-icon">
-                <WealthIcon size="16px" />
-                <span>Wealth Tax</span>
-                <InfoTooltip content="Annual tax on total wealth/assets">
-                  <InfoIcon size="14px" />
-                </InfoTooltip>
-              </div>
-            </div>
             <div className="residency-cell">
               <div className="header-with-icon">
                 <ResidencyIcon size="16px" />
@@ -349,53 +341,52 @@ const EnhancedCountryRankings = ({ countries }) => {
           <div className="table-body">
             <InfiniteScroll
               data={visibleCountries}
-              renderItem={(country, index) => (
-                <div
-                  key={country._id}
-                  className={`table-row ${selectedCountries.some(c => c._id === country._id) ? 'selected' : ''}`}
-                  style={{
-                    backgroundColor: selectedCountries.some(c => c._id === country._id) 
-                      ? `${getCategoryColorForComponent(country.category)}22` 
-                      : index % 2 === 0 ? '#222222' : '#191919'
-                  }}
-                >
-                  <div className="check-cell">
-                    <Checkbox
-                      type="checkbox"
-                      checked={selectedCountries.some(c => c._id === country._id)}
-                      onChange={() => toggleCountrySelection(country)}
-                    />
+              renderItem={(country, index) => {
+                const rankColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+                
+                return (
+                  <div
+                    key={country._id}
+                    className={`table-row ${selectedCountries.some(c => c._id === country._id) ? 'selected' : ''}`}
+                    style={{
+                      backgroundColor: selectedCountries.some(c => c._id === country._id) 
+                        ? `${rankColor}22` 
+                        : index % 2 === 0 ? '#222222' : '#191919'
+                    }}
+                  >
+                    <div className="check-cell">
+                      <Checkbox
+                        type="checkbox"
+                        checked={selectedCountries.some(c => c._id === country._id)}
+                        onChange={() => toggleCountrySelection(country)}
+                      />
+                    </div>
+                    <div className="rank-cell">
+                      <RankBadge color={rankColor}>
+                        {country.rank}
+                      </RankBadge>
+                    </div>
+                    <div className="country-cell">
+                      <CountryLink to={`/country/${country._id}`}>
+                        {country.name}
+                      </CountryLink>
+                    </div>
+                    <div className="gain-cell">
+                      <HighlightValue isGood={(country.capitalGainsTaxShort || country.capitalGainsTax) === '0%'}>
+                        {country.capitalGainsTaxShort || country.capitalGainsTax}
+                      </HighlightValue>
+                    </div>
+                    <div className="residency-cell">
+                      <span className="nowrap">{country.residencyInvestment}</span>
+                    </div>
+                    <div className="financial-cell">
+                      <FinancialBadge service={country.financialServices}>
+                        {country.financialServices}
+                      </FinancialBadge>
+                    </div>
                   </div>
-                  <div className="rank-cell">
-                    <RankBadge category={country.category}>
-                      {country.rank}
-                    </RankBadge>
-                  </div>
-                  <div className="country-cell">
-                    <CountryLink to={`/country/${country._id}`}>
-                      {country.name}
-                    </CountryLink>
-                  </div>
-                  <div className="gain-cell">
-                    <HighlightValue isGood={(country.capitalGainsTaxShort || country.capitalGainsTax) === '0%'}>
-                      {country.capitalGainsTaxShort || country.capitalGainsTax}
-                    </HighlightValue>
-                  </div>
-                  <div className="wealth-cell">
-                    <HighlightValue isGood={country.wealthTax === '0%'}>
-                      {country.wealthTax}
-                    </HighlightValue>
-                  </div>
-                  <div className="residency-cell">
-                    <span className="nowrap">{country.residencyInvestment}</span>
-                  </div>
-                  <div className="financial-cell">
-                    <FinancialBadge service={country.financialServices}>
-                      {country.financialServices}
-                    </FinancialBadge>
-                  </div>
-                </div>
-              )}
+                );
+              }}
               hasMore={hasMore}
               loading={loading}
               loadMore={loadMoreCountries}
@@ -422,20 +413,24 @@ const EnhancedCountryRankings = ({ countries }) => {
         <SelectedCountriesContainer>
           <h4>Selected Countries</h4>
           <SelectedCountriesList>
-            {selectedCountries.map(country => (
-              <SelectedCountryItem key={country._id} category={country.category}>
-                <div className="country-info">
-                  <strong>{country.name}</strong>
-                  <span>Rank #{country.rank}</span>
-                </div>
-                <RemoveButton onClick={() => toggleCountrySelection(country)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </RemoveButton>
-              </SelectedCountryItem>
-            ))}
+            {selectedCountries.map(country => {
+              const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+              
+              return (
+                <SelectedCountryItem key={country._id} color={countryColor}>
+                  <div className="country-info">
+                    <strong>{country.name}</strong>
+                    <span>Rank #{country.rank}</span>
+                  </div>
+                  <RemoveButton onClick={() => toggleCountrySelection(country)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </RemoveButton>
+                </SelectedCountryItem>
+              );
+            })}
           </SelectedCountriesList>
         </SelectedCountriesContainer>
       </Modal>
@@ -587,7 +582,7 @@ const TableContainer = styled.div`
   
   .table-header, .table-row {
     display: grid;
-    grid-template-columns: 3.5% 6.5% 19% 1fr 1fr 1.2fr 0.8fr;
+    grid-template-columns: 3.5% 9.5% 17% 30% 20% 20%;
     min-height: 60px;
   }
   
@@ -599,14 +594,14 @@ const TableContainer = styled.div`
     font-weight: 600;
     
     @media (max-width: 768px) {
-      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr 1.2fr;
+      grid-template-columns: 3.5% 9.5% 20% 37% 30%;
       .financial-cell {
         display: none;
       }
     }
     
     @media (max-width: 640px) {
-      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr;
+      grid-template-columns: 3.5% 11.5% 35% 50%;
       .residency-cell {
         display: none;
       }
@@ -618,14 +613,14 @@ const TableContainer = styled.div`
     transition: background-color 0.2s;
     
     @media (max-width: 768px) {
-      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr 1.2fr;
+      grid-template-columns: 3.5% 9.5% 20% 37% 30%;
       .financial-cell {
         display: none;
       }
     }
     
     @media (max-width: 640px) {
-      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr;
+      grid-template-columns: 3.5% 11.5% 35% 50%;
       .residency-cell {
         display: none;
       }
@@ -640,7 +635,7 @@ const TableContainer = styled.div`
     }
   }
   
-  .check-cell, .rank-cell, .country-cell, .gain-cell, .wealth-cell, .residency-cell, .financial-cell {
+  .check-cell, .rank-cell, .country-cell, .gain-cell, .residency-cell, .financial-cell {
     display: flex;
     align-items: center;
     padding: 0.75rem 0.5rem;
@@ -663,12 +658,9 @@ const TableContainer = styled.div`
     padding-left: 1rem;
   }
   
-  .gain-cell, .wealth-cell {
+  .gain-cell {
     justify-content: center;
     text-align: center;
-  }
-  
-  .gain-cell {
     cursor: pointer;
   }
   
@@ -706,7 +698,7 @@ const RankBadge = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: ${({ category }) => getCategoryColorForComponent(category) || '#F7931A'};
+  background-color: ${({ color }) => color || '#F7931A'};
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -785,7 +777,7 @@ const SelectedCountryItem = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: ${({ theme }) => theme.spacing.sm};
-  background-color: ${({ theme, category }) => `${getCategoryColorForComponent(category)}22`};
+  background-color: ${({ theme, color }) => `${color}22`};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   
   .country-info {
