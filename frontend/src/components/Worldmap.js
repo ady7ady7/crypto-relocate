@@ -1,46 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, Tooltip, Marker } from 'react-leaflet';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import styled, { useTheme } from 'styled-components';
-import { CategoryDefinitions, getColorByRank } from './styles/Colors';
+import styled from 'styled-components';
+import { getCategoryColor, getColorByRank, CategoryDefinitions, Colors } from './styles/Colors';
 
-// Function to determine if a GeoJSON feature is a main territory or remote territory
-const isMainTerritory = (countryCode, bounds) => {
-  // Skip for countries that don't have the issue
-  if (!countryCode) return true;
-  
-  const center = bounds.getCenter();
-  
-  switch (countryCode) {
-    case 'NO': // Norway
-      // Mainland Norway's latitude is typically between 58-71, longitude between 4-30
-      // Exclude Svalbard which is typically above 74°N
-      return center.lat < 74 && center.lng > 4 && center.lng < 30;
-    
-    case 'FR': // France
-      // Check if this is mainland France vs. overseas territories
-      return center.lat >= 41 && center.lat <= 52 && center.lng >= -5 && center.lng <= 10;
-    
-    case 'US': // United States
-      // Check if this is mainland US vs. Alaska, Hawaii, etc.
-      return center.lat >= 24 && center.lat <= 50 && center.lng >= -125 && center.lng <= -66;
-    
-    case 'RU': // Russia
-      // This is a rough approximation for mainland Russia
-      return center.lat <= 80;
-      
-    case 'DK': // Denmark
-      // Exclude Greenland
-      return center.lat < 60;
-      
-    // Add more countries with remote territories as needed
-    
-    default:
-      return true;
-  }
-};
 
 // Styled components for the UI
 const MapWrapper = styled.div`
@@ -188,23 +153,6 @@ const StyledMapContainer = styled(MapContainer)`
   }
 `;
 
-// Loading overlay component
-const LoadingOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  color: white;
-  font-size: 18px;
-  border-radius: 0 0 8px 8px;
-`;
-
 // MapController component to handle map view changes
 function MapController({ continent }) {
   const map = useMap();
@@ -235,59 +183,32 @@ function MapController({ continent }) {
 
 // Map Legend component
 function MapLegend() {
-  const theme = useTheme();
   return (
     <LegendContainer>
       <LegendTitle>Crypto-Friendliness Ranking</LegendTitle>
       <LegendItem>
-        <LegendColor color={theme.colors.countryExcellent} />
-        <span>Excellent (Ranks 1-10): 0% taxes, excellent infrastructure</span>
+        <LegendColor color={Colors.countryExcellent} />
+        <span>Excellent (Ranks 1-10): Minimal taxation</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color={theme.colors.countryFavorable} />
-        <span>Favorable (Ranks 11-33): Low taxes, good infrastructure</span>
+        <LegendColor color={Colors.countryFavorable} />
+        <span>Favorable (Ranks 11-33): Low taxes</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color={theme.colors.countryModerate} />
-        <span>Moderate (Ranks 34-62): Standard taxes, average support</span>
+        <LegendColor color={Colors.countryModerate} />
+        <span>Moderate (Ranks 34-62): Standard taxes</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color={theme.colors.countryRestrictive} />
-        <span>Restrictive (Ranks 63-78): High taxes or regulations</span>
+        <LegendColor color={Colors.countryRestrictive} />
+        <span>Restrictive (Ranks 63-78): High taxes</span>
       </LegendItem>
       <LegendItem>
-        <LegendColor color={theme.colors.countryNotFavorable} />
-        <span>Not favorable (Ranks 79-89): Prohibitive for crypto</span>
+        <LegendColor color={Colors.countryNotFavorable} />
+        <span>Not favorable (Ranks 79+): Prohibitive</span>
       </LegendItem>
     </LegendContainer>
   );
 }
-
-// Modified function that will work with or without category property
-const getCategoryForCountry = (country) => {
-  if (!country) return 'notFavorable';
-  
-  // If category property exists, use it
-  if (country.category) {
-    if (country.category === 'Excellent') return 'excellent';
-    if (country.category === 'Favorable') return 'favorable';
-    if (country.category === 'Moderate') return 'moderate';
-    if (country.category === 'Restrictive') return 'restrictive';
-    if (country.category === 'Not favorable') return 'notFavorable';
-  }
-  
-  // If no category property or it doesn't match, fallback to rank-based categorization
-  const rank = parseInt(country.rank);
-  // Use our centralized function to determine category by rank
-  const color = getColorByRank(rank);
-  
-  // Return the category key based on the color
-  if (color === CategoryDefinitions.excellent.color) return 'excellent';
-  if (color === CategoryDefinitions.favorable.color) return 'favorable';
-  if (color === CategoryDefinitions.moderate.color) return 'moderate';
-  if (color === CategoryDefinitions.restrictive.color) return 'restrictive';
-  return 'notFavorable';
-};
 
 // Update regionalInsights based on the top ranked countries in each region from your data
 const regionalInsights = {
@@ -337,7 +258,7 @@ const countryToContinentMap = {
   'AM': 'asia', 'AZ': 'asia', 'BT': 'asia', 'CN': 'asia', 'IR': 'asia', 'IQ': 'asia', 'KP': 'asia',
   
   // North America (expanded with Caribbean nations)
-  'US': 'northAmerica', 'CA': 'northAmerica', 'MX': 'northAmerica', 'PA': 'northAmerica', 'BS': 'northAmerica',
+  'US': 'northAmerica', 'USA': 'northAmerica', 'CA': 'northAmerica', 'MX': 'northAmerica', 'PA': 'northAmerica', 'BS': 'northAmerica',
   'CR': 'northAmerica', 'SV': 'northAmerica', 'GT': 'northAmerica', 'HN': 'northAmerica', 'NI': 'northAmerica',
   'JM': 'northAmerica', 'DO': 'northAmerica', 'CU': 'northAmerica', 'HT': 'northAmerica', 'BZ': 'northAmerica',
   'BB': 'northAmerica', 'LC': 'northAmerica', 'AG': 'northAmerica', 'KY': 'northAmerica', 'TT': 'northAmerica',
@@ -359,120 +280,99 @@ const countryToContinentMap = {
   'PW': 'oceania', 'CK': 'oceania', 'NU': 'oceania'
 };
 
+// Norway mainland position for custom marker
+const NORWAY_POSITION = [64.5, 15]; // Coordinates for mainland Norway
+
 const WorldMap = ({ countries }) => {
-  const theme = useTheme(); // Get theme using styled-components' useTheme hook
   const [geoJsonData, setGeoJsonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedContinent, setSelectedContinent] = useState('world');
   const [continentStats, setContinentStats] = useState({});
-  const [mapReady, setMapReady] = useState(false);
-  const mapRef = useRef(null);
+  const [norwegianData, setNorwegianData] = useState(null);
   
-  // Use our centralized category definitions
-  const categories = CategoryDefinitions;
-  
-  // Fetch GeoJSON data and preprocess it
+  // Fetch GeoJSON data
   useEffect(() => {
     const fetchGeoData = async () => {
       try {
-        // Show loading indicator
-        setLoading(true);
-        setMapReady(false);
-        
         // Clean world map without labels
         const response = await axios.get(
           'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
         );
-        
-        // Preprocess the GeoJSON data to add bounds for each feature
-        const processedData = {
-          ...response.data,
-          features: response.data.features.map(feature => {
-            // Create a temporary L.GeoJSON to get the bounds
-            const tempGeoJSON = L.geoJSON({ type: feature.type, geometry: feature.geometry });
-            feature.bounds = tempGeoJSON.getBounds();
-            return feature;
-          })
-        };
-        
-        // Set the processed GeoJSON data
-        setGeoJsonData(processedData);
-        
-        // Short delay to ensure browser has time to process before rendering
-        setTimeout(() => {
-          setLoading(false);
-          
-          // Wait a little longer before marking as ready to ensure smooth rendering
-          setTimeout(() => {
-            setMapReady(true);
-          }, 200);
-        }, 300);
+        setGeoJsonData(response.data);
+        setLoading(false);
       } catch (error) {
         console.error('Failed to fetch GeoJSON data:', error);
         setLoading(false);
-        setMapReady(true); // Still mark as ready to show something
       }
     };
     
     fetchGeoData();
   }, []);
+
+  // Extract Norway data when countries or geoJsonData change
+  useEffect(() => {
+    if (countries && countries.length > 0) {
+      const norway = countries.find(country => country.code === 'NO');
+      if (norway) {
+        setNorwegianData(norway);
+      }
+    }
+  }, [countries]);
   
   // Calculate statistics for each continent based on all research
   useEffect(() => {
     if (countries && countries.length > 0) {
-      // Initialize stats
+      // Initialize stats for excellent, favorable, moderate, restrictive, notFavorable
+      const categoryRanges = {
+        excellent: { min: 1, max: 10 },
+        favorable: { min: 11, max: 33 },
+        moderate: { min: 34, max: 62 },
+        restrictive: { min: 63, max: 78 },
+        notFavorable: { min: 79, max: Infinity }
+      };
+      
       const stats = {
-        world: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        europe: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        northAmerica: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        southAmerica: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        asia: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        africa: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        oceania: Object.keys(categories).reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {})
+        world: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        europe: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        northAmerica: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        southAmerica: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        asia: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        africa: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
+        oceania: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 }
       };
       
       // Count countries in each category per continent
       countries.forEach(country => {
-        const category = getCategoryForCountry(country);
-        const continent = countryToContinentMap[country.code] || 'world';
+        const rank = parseInt(country.rank);
+        let category = 'notFavorable';
+        
+        // Determine category based on rank ranges
+        for (const [cat, range] of Object.entries(categoryRanges)) {
+          if (rank >= range.min && rank <= range.max) {
+            category = cat;
+            break;
+          }
+        }
+        
+        // Use both US and USA for United States
+        let continent = countryToContinentMap[country.code] || 'world';
         
         // Increment global count
-        stats.world[category] = (stats.world[category] || 0) + 1;
+        stats.world[category]++;
         
         // Increment continent count
         if (continent !== 'world') {
-          stats[continent][category] = (stats[continent][category] || 0) + 1;
+          stats[continent][category]++;
         }
       });
       
       setContinentStats(stats);
     }
   }, [countries]);
-  
-  // Access and configure the map when it's ready
-  useEffect(() => {
-    if (mapReady && mapRef.current) {
-      const leafletMap = mapRef.current;
-      
-      // If leafletMap is available, we can configure performance settings
-      if (leafletMap && typeof leafletMap.getRenderer === 'function') {
-        const renderer = leafletMap.getRenderer(leafletMap);
-        if (renderer) {
-          // Increase the max size for better performance with all features visible
-          renderer.options.padding = 2;
-          
-          // Set higher precision for rendering
-          if (renderer.options) {
-            renderer.options.tolerance = 0;
-          }
-        }
-      }
-    }
-  }, [mapReady]);
 
-  // Style function for GeoJSON features
+  // Style function for GeoJSON features - updated with comprehensive categorization
   const style = (feature) => {
-    // Get country code
+    // Get country code from different possible property names
     const countryCode = feature.properties.ISO_A2 || 
                        feature.properties.iso_a2 || 
                        (feature.properties.ISO_A3 ? feature.properties.ISO_A3.substring(0, 2) : null);
@@ -481,29 +381,42 @@ const WorldMap = ({ countries }) => {
       return {
         fillColor: '#333333',
         fillOpacity: 0.5,
-        weight: 0.5,
+        weight: 1,
         color: '#555555',
+        opacity: 0.7
+      };
+    }
+    
+    // Skip Norway - we'll add a custom marker for it
+    if (countryCode === 'NO') {
+      return {
+        fillColor: Colors.countryModerate,
+        fillOpacity: 0.7,
+        weight: 1,
+        color: '#FFFFFF',
         opacity: 0.5
       };
     }
     
-    // Find matching country in our data
-    const country = countries.find(c => c.code === countryCode);
+    // Find matching country in our data - try both the exact code and USA/US alternatives for United States
+    const country = countries.find(c => {
+      // Handle special case for United States (both US and USA codes might be used)
+      if (countryCode === 'US' || countryCode === 'USA') {
+        return c.code === 'US' || c.code === 'USA';
+      }
+      return c.code === countryCode;
+    });
     
     if (country) {
-      // Get category for the country using the fixed categorization function
-      const categoryKey = getCategoryForCountry(country);
-      const category = categories[categoryKey];
-      
-      // Check if this is a main territory before applying a stronger style
-      const isMain = feature.bounds ? isMainTerritory(countryCode, feature.bounds) : true;
+      // Get color by rank using the getColorByRank function
+      const color = getColorByRank(country.rank);
       
       return {
-        fillColor: category.color,
-        fillOpacity: isMain ? 0.8 : 0.6, // Slightly less opacity for territories
+        fillColor: color,
+        fillOpacity: 0.7,
         weight: 1,
         color: '#FFFFFF',
-        opacity: 0.7
+        opacity: 0.5
       };
     }
     
@@ -511,17 +424,23 @@ const WorldMap = ({ countries }) => {
     return {
       fillColor: '#333333',
       fillOpacity: 0.5,
-      weight: 0.5,
+      weight: 1,
       color: '#555555',
       opacity: 0.5
     };
   };
   
-  // Add interactions to each country - enhanced with detailed research info
+  // Add tooltips and interactions to each country - enhanced with detailed research info
   const onEachFeature = (feature, layer) => {
+    // Get country code from different possible property names, supporting multiple formats
     const countryCode = feature.properties.ISO_A2 || 
                        feature.properties.iso_a2 || 
                        (feature.properties.ISO_A3 ? feature.properties.ISO_A3.substring(0, 2) : null);
+    
+    // Skip Norway as we'll handle it separately
+    if (countryCode === 'NO') {
+      return;
+    }
     
     // Find a proper english name for the country
     const countryName = feature.properties.ADMIN || 
@@ -529,41 +448,33 @@ const WorldMap = ({ countries }) => {
                        feature.properties.NAME || 
                        'Unknown Country';
     
-    // Store bounds in the feature for later use
-    if (!feature.bounds) {
-      feature.bounds = layer.getBounds();
-    }
-    
-    // Check if this is a main territory or a remote territory
-    if (!isMainTerritory(countryCode, feature.bounds)) {
-      // For remote territories, we'll still make them clickable but no tooltip
-      if (countryCode) {
-        const country = countries.find(c => c.code === countryCode);
-        if (country) {
-          layer.on({
-            click: () => {
-              window.location.href = `/country/${country.code || countryCode}`;
-            }
-          });
-        }
+    // Find matching country in our data - handle USA/US special case
+    const country = countries.find(c => {
+      // Handle special case for United States (both US and USA codes might be used)
+      if (countryCode === 'US' || countryCode === 'USA') {
+        return c.code === 'US' || c.code === 'USA';
       }
-      return; // Skip adding tooltip for remote territories
-    }
-    
-    // Find matching country in our data
-    const country = countries.find(c => c.code === countryCode);
+      return c.code === countryCode;
+    });
     
     if (country) {
-      // Get category
-      const categoryKey = getCategoryForCountry(country);
-      const category = categories[categoryKey];
+      // Get color by rank
+      const color = getColorByRank(country.rank);
+      
+      // Get category name based on rank
+      let categoryName = "Unknown";
+      if (country.rank >= 1 && country.rank <= 10) categoryName = "Excellent";
+      else if (country.rank >= 11 && country.rank <= 33) categoryName = "Favorable";
+      else if (country.rank >= 34 && country.rank <= 62) categoryName = "Moderate";
+      else if (country.rank >= 63 && country.rank <= 78) categoryName = "Restrictive";
+      else categoryName = "Not Favorable";
       
       // Create tooltip with more detailed information based on research - with improved readability
       const tooltipContent = `
         <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
           <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
           <br/>
-          <span style="color: ${category.color}; font-weight: 600;">Rank: #${country.rank} - ${category.name}</span>
+          <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
           <br/>
           <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTax}</small>
           <br/>
@@ -577,131 +488,98 @@ const WorldMap = ({ countries }) => {
         </div>
       `;
       
-      // Configure tooltip with additional options for better positioning
-      const tooltipOptions = { 
-        permanent: false,
-        className: 'country-tooltip'
-      };
-      
-      // Custom tooltip positioning for specific countries
-      if (countryCode) {
-        switch (countryCode) {
-          case 'NO': // Norway
-            tooltipOptions.direction = 'right';
-            tooltipOptions.offset = L.point(10, 0);
-            break;
-          case 'SE': // Sweden
-            tooltipOptions.direction = 'right';
-            tooltipOptions.offset = L.point(5, 0);
-            break;
-          case 'FI': // Finland
-            tooltipOptions.direction = 'right';
-            tooltipOptions.offset = L.point(5, 0);
-            break;
-          case 'IS': // Iceland
-            tooltipOptions.direction = 'bottom';
-            break;
-          case 'NZ': // New Zealand
-            tooltipOptions.direction = 'left';
-            break;
-          case 'JP': // Japan
-            tooltipOptions.direction = 'left';
-            break;
-          case 'AU': // Australia
-            tooltipOptions.direction = 'top';
-            break;
-          default:
-            tooltipOptions.direction = 'top';
-        }
-      } else {
-        tooltipOptions.direction = 'top';
-      }
-      
-      layer.bindTooltip(tooltipContent, tooltipOptions);
-      
-      // Add interactive effects with improved highlighting
-      layer.on({
-        click: () => {
-          // Use _id if available, but prefer the consistent 'code' property
-          window.location.href = `/country/${country.code || countryCode}`;
-        },
-        mouseover: (e) => {
-          const layer = e.target;
-          
-          // More visible highlighting effect
-          layer.setStyle({
-            fillOpacity: 0.9,
-            weight: 2,
-            opacity: 1,
-            color: '#FFFFFF' // White border for better visibility
-          });
-          
-          if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-            layer.bringToFront();
-          }
-        },
-        mouseout: (e) => {
-          const layer = e.target;
-          
-          // Restore original style
-          layer.setStyle({
-            fillOpacity: 0.7,
-            weight: 1,
-            opacity: 0.5,
-            color: '#FFFFFF'
-          });
-        }
-      });
-    } else {
-      // Simple tooltip for unlisted countries with improved styling
-      const tooltipContent = `
-        <div style="text-align: center; color: #f0f0f0;">
-          <strong style="font-size: 14px; color: #ffffff;">${countryName}</strong>
-          <br/>
-          <small style="color: #e0e0e0;">No crypto data available</small>
-        </div>
-      `;
-      
       layer.bindTooltip(tooltipContent, { 
         permanent: false,
         direction: 'top',
         className: 'country-tooltip'
       });
       
-      // Add basic hover effect for countries without data
+      // Add interactive effects
       layer.on({
+        click: () => {
+          window.location.href = `/country/${country._id || country.id || countryCode.toLowerCase()}`;
+        },
         mouseover: (e) => {
           const layer = e.target;
           layer.setStyle({
-            fillOpacity: 0.8,
-            weight: 1.5,
-            opacity: 0.8,
-            color: '#AAAAAA' // Lighter border for countries without data
+            fillOpacity: 0.9,
+            weight: 2,
+            opacity: 1
           });
+          layer.bringToFront();
         },
         mouseout: (e) => {
           const layer = e.target;
           layer.setStyle({
-            fillOpacity: 0.5,
+            fillOpacity: 0.7,
             weight: 1,
-            opacity: 0.5,
-            color: '#555555'
+            opacity: 0.5
           });
         }
       });
+    } else {
+      // Simple tooltip for unlisted countries
+      layer.bindTooltip(`<strong style="color: #ffffff;">${countryName}</strong>`, { 
+        permanent: false,
+        direction: 'top',
+        className: 'country-tooltip'
+      });
     }
   };
+
+  // Custom Norway tooltip component
+  const NorwayTooltip = () => {
+    if (!norwegianData) return null;
+    
+    const color = getColorByRank(norwegianData.rank);
+    
+    // Get category name based on rank
+    let categoryName = "Unknown";
+    if (norwegianData.rank >= 1 && norwegianData.rank <= 10) categoryName = "Excellent";
+    else if (norwegianData.rank >= 11 && norwegianData.rank <= 33) categoryName = "Favorable";
+    else if (norwegianData.rank >= 34 && norwegianData.rank <= 62) categoryName = "Moderate";
+    else if (norwegianData.rank >= 63 && norwegianData.rank <= 78) categoryName = "Restrictive";
+    else categoryName = "Not Favorable";
+    
+    const tooltipContent = `
+      <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
+        <strong style="font-size: 14px; color: #ffffff;">${norwegianData.name}</strong>
+        <br/>
+        <span style="color: ${color}; font-weight: 600;">Rank: #${norwegianData.rank} - ${categoryName}</span>
+        <br/>
+        <small style="color: #e0e0e0;">Capital Gains Tax: ${norwegianData.capitalGainsTax}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Wealth Tax: ${norwegianData.wealthTax}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Residency Investment: ${norwegianData.residencyInvestment}</small>
+        <br/>
+        <small style="color: #e0e0e0;">Financial Services: ${norwegianData.financialServices}</small>
+        ${norwegianData.futureRisks ? `<br/><small style="color: #e0e0e0;">Future Risks: ${norwegianData.futureRisks}</small>` : ''}
+        ${norwegianData.costOfLivingIndex ? `<br/><small style="color: #e0e0e0;">Cost of Living: ${norwegianData.costOfLivingIndex}</small>` : ''}
+      </div>
+    `;
   
-  // GeoJSON options to ensure complete preloading
-  const geoJsonOptions = {
-    style: style,
-    onEachFeature: onEachFeature,
-    // These settings ensure all features are rendered at once
-    renderer: L.canvas({ padding: 2, tolerance: 0 }),
-    // Disable chunked loading to render everything at once
-    chunkedLoading: false,
-    // Don't filter features for better panning experience
-    filter: () => true
+    return (
+      <Marker 
+        position={NORWAY_POSITION} 
+        opacity={0}
+        eventHandlers={{
+          click: () => {
+            window.location.href = `/country/${norwegianData._id || norwegianData.id || 'no'}`;
+          }
+        }}
+      >
+        <Tooltip 
+          direction="right" 
+          offset={[10, 0]} 
+          className="country-tooltip"
+          permanent={false}
+          interactive={true}
+        >
+          <div dangerouslySetInnerHTML={{ __html: tooltipContent }} />
+        </Tooltip>
+      </Marker>
+    );
   };
   
   return (
@@ -713,10 +591,16 @@ const WorldMap = ({ countries }) => {
         >
           World
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.world && continentStats.world[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.world[cat]} countries</span>
+            {Object.entries(continentStats.world || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -732,10 +616,16 @@ const WorldMap = ({ countries }) => {
         >
           Europe
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.europe && continentStats.europe[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.europe[cat]} countries</span>
+            {Object.entries(continentStats.europe || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -751,10 +641,16 @@ const WorldMap = ({ countries }) => {
         >
           North America
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.northAmerica && continentStats.northAmerica[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.northAmerica[cat]} countries</span>
+            {Object.entries(continentStats.northAmerica || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -770,10 +666,16 @@ const WorldMap = ({ countries }) => {
         >
           South America
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.southAmerica && continentStats.southAmerica[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.southAmerica[cat]} countries</span>
+            {Object.entries(continentStats.southAmerica || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -789,10 +691,16 @@ const WorldMap = ({ countries }) => {
         >
           Asia
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.asia && continentStats.asia[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.asia[cat]} countries</span>
+            {Object.entries(continentStats.asia || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -808,10 +716,16 @@ const WorldMap = ({ countries }) => {
         >
           Africa
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.africa && continentStats.africa[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.africa[cat]} countries</span>
+            {Object.entries(continentStats.africa || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -827,10 +741,16 @@ const WorldMap = ({ countries }) => {
         >
           Oceania
           <StatsTooltip>
-            {Object.keys(categories).map(cat => continentStats.oceania && continentStats.oceania[cat] > 0 && (
-              <StatItem color={categories[cat].color} key={cat}>
-                <span className="stat-name">{categories[cat].name}:</span>
-                <span className="stat-value">{continentStats.oceania[cat]} countries</span>
+            {Object.entries(continentStats.oceania || {}).map(([cat, count]) => count > 0 && (
+              <StatItem color={
+                cat === 'excellent' ? Colors.countryExcellent :
+                cat === 'favorable' ? Colors.countryFavorable :
+                cat === 'moderate' ? Colors.countryModerate :
+                cat === 'restrictive' ? Colors.countryRestrictive :
+                Colors.countryNotFavorable
+              } key={cat}>
+                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+                <span className="stat-value">{count} countries</span>
               </StatItem>
             ))}
             <RegionalInsight>
@@ -841,51 +761,56 @@ const WorldMap = ({ countries }) => {
         </ContinentButton>
       </ContinentSelector>
       
-      <div style={{ position: 'relative' }}>
-        <StyledMapContainer
-          center={[30, 10]}
-          zoom={2}
-          minZoom={1.5}
-          maxZoom={6}
-          scrollWheelZoom={true}
-          zoomControl={true}
-          attributionControl={false}
-          zoomAnimation={true}
-          zoomSnap={0.25}
-          zoomDelta={0.25}
-          wheelDebounceTime={100}
-          wheelPxPerZoomLevel={200}
-          preferCanvas={true}
-          ref={mapRef}
-          // Set a key to force re-rendering when data changes
-          key={`map-${mapReady ? 'ready' : 'loading'}`}
-        >
-          {/* Use a minimal base map without labels */}
-          <TileLayer
-            url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          />
-          
-          {geoJsonData && mapReady && (
-            <GeoJSON 
-              data={geoJsonData}
-              {...geoJsonOptions}
-            />
-          )}
-          
-          <MapController continent={selectedContinent} />
-          <MapLegend />
-        </StyledMapContainer>
+      <StyledMapContainer
+        center={[30, 10]}
+        zoom={2}
+        minZoom={1.5}
+        maxZoom={6}
+        scrollWheelZoom={true}
+        zoomControl={true}
+        attributionControl={false}
+        zoomAnimation={true}
+        zoomSnap={0.25}
+        zoomDelta={0.25}
+        wheelDebounceTime={100}
+        wheelPxPerZoomLevel={200}
+        preferCanvas={true}
+      >
+        {/* Use a minimal base map without labels */}
+        <TileLayer
+          url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        />
         
-        {loading && (
-          <LoadingOverlay>
-            <div>
-              <div style={{ marginBottom: '10px' }}>Loading map data...</div>
-              <div style={{ fontSize: '14px', opacity: 0.8 }}>This may take a moment to ensure smooth navigation</div>
-            </div>
-          </LoadingOverlay>
+        {geoJsonData && (
+          <GeoJSON 
+            data={geoJsonData}
+            style={style}
+            onEachFeature={onEachFeature}
+          />
         )}
-      </div>
+        
+        {/* Add custom Norway tooltip */}
+        {norwegianData && <NorwayTooltip />}
+        
+        <MapController continent={selectedContinent} />
+        <MapLegend />
+
+        {loading && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            color: 'white'
+          }}>
+            Loading map data...
+          </div>
+        )}
+      </StyledMapContainer>
     </MapWrapper>
   );
 };

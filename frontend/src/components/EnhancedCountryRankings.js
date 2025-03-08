@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { getCategoryColor, CategoryDefinitions } from './styles/Colors';
 
 // Import the new components
 import InfiniteScroll from './InfiniteScroll';
@@ -11,8 +10,14 @@ import { TaxIcon, WealthIcon, ResidencyIcon, BankIcon, RiskIcon, SortIcon, Filte
 import { CountryCardSkeleton } from './Skeletons';
 import { ReadMore, InfoTooltip, Modal } from './disclosure';
 import { RadarChart, HorizontalBarChart } from './charts/ComparisonChart';
+import { getCategoryColor, getColorByRank } from './styles/Colors';
 
 const PAGE_SIZE = 10;
+
+// Helper function to get category color
+const getCategoryColorForComponent = (category) => {
+  return getCategoryColor(category);
+};
 
 const EnhancedCountryRankings = ({ countries }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,7 +135,6 @@ const EnhancedCountryRankings = ({ countries }) => {
     });
   };
   
-  
   // Render comparison chart data
   const renderComparisonData = () => {
     if (selectedCountries.length === 0) return null;
@@ -173,7 +177,7 @@ const EnhancedCountryRankings = ({ countries }) => {
       
       return {
         name: country.name,
-        color: getCategoryColor(country.category),
+        color: getCategoryColorForComponent(country.category),
         values: [
           capitalGainsTax,           // Tax friendliness
           country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
@@ -188,7 +192,7 @@ const EnhancedCountryRankings = ({ countries }) => {
     const barData = selectedCountries.map(country => ({
       label: country.name,
       value: 100 - country.rank, // Invert rank for visualization (higher is better)
-      color: getCategoryColor(country.category)
+      color: getCategoryColorForComponent(country.category)
     }));
     
     return (
@@ -287,26 +291,30 @@ const EnhancedCountryRankings = ({ countries }) => {
         )}
       </FiltersContainer>
       
-      <CountryTable>
-        <TableHead>
-          <tr>
-            <TableHeader width="50px"></TableHeader>
-            <TableHeader width="60px" onClick={() => handleSort('rank')}>
+      <TablePrompt>
+        <span>👉 Click on any country to view detailed information and analysis</span>
+      </TablePrompt>
+      
+      <TableContainer>
+        <div className="table-layout">
+          <div className="table-header">
+            <div className="check-cell"></div>
+            <div className="rank-cell" onClick={() => handleSort('rank')}>
               Rank
               {sortKey === 'rank' && (
                 <SortIndicator direction={sortOrder === 'asc' ? 'up' : 'down'} />
               )}
-            </TableHeader>
-            <TableHeader onClick={() => handleSort('name')}>
+            </div>
+            <div className="country-cell" onClick={() => handleSort('name')}>
               Country
               {sortKey === 'name' && (
                 <SortIndicator direction={sortOrder === 'asc' ? 'up' : 'down'} />
               )}
-            </TableHeader>
-            <TableHeader onClick={() => handleSort('capitalGainsTax')}>
+            </div>
+            <div className="gain-cell" onClick={() => handleSort('capitalGainsTax')}>
               <div className="header-with-icon">
                 <TaxIcon size="16px" />
-                <span>Capital Gains Tax</span>
+                <span>Capital Gains</span>
                 <InfoTooltip content="Tax rate applied to profits from selling crypto assets">
                   <InfoIcon size="14px" />
                 </InfoTooltip>
@@ -314,8 +322,8 @@ const EnhancedCountryRankings = ({ countries }) => {
               {sortKey === 'capitalGainsTax' && (
                 <SortIndicator direction={sortOrder === 'asc' ? 'up' : 'down'} />
               )}
-            </TableHeader>
-            <TableHeader>
+            </div>
+            <div className="wealth-cell">
               <div className="header-with-icon">
                 <WealthIcon size="16px" />
                 <span>Wealth Tax</span>
@@ -323,87 +331,85 @@ const EnhancedCountryRankings = ({ countries }) => {
                   <InfoIcon size="14px" />
                 </InfoTooltip>
               </div>
-            </TableHeader>
-            <TableHeader className="hide-mobile">
+            </div>
+            <div className="residency-cell">
               <div className="header-with-icon">
                 <ResidencyIcon size="16px" />
                 <span>Residency</span>
               </div>
-            </TableHeader>
-            <TableHeader className="hide-mobile">
+            </div>
+            <div className="financial-cell">
               <div className="header-with-icon">
                 <BankIcon size="16px" />
                 <span>Financial</span>
               </div>
-            </TableHeader>
-          </tr>
-        </TableHead>
-        <tbody>
-          <InfiniteScroll
-            data={visibleCountries}
-            renderItem={(country, index) => (
-              <CountryRow 
-                key={country._id} 
-                selected={selectedCountries.some(c => c._id === country._id)}
-                category={country.category}
-              >
-                <SelectCell>
-                  <Checkbox
-                    type="checkbox"
-                    checked={selectedCountries.some(c => c._id === country._id)}
-                    onChange={() => toggleCountrySelection(country)}
-                  />
-                </SelectCell>
-                <RankCell>
-                  <RankBadge category={country.category}>
-                    {country.rank}
-                  </RankBadge>
-                </RankCell>
-                <CountryNameCell>
-                  <CountryLink to={`/country/${country._id}`}>
-                    {country.name}
-                  </CountryLink>
-                  <CountryDescription>
-                    <ReadMore 
-                      text={country.description} 
-                      maxChars={60}
-                      btnText="More info"
+            </div>
+          </div>
+          
+          <div className="table-body">
+            <InfiniteScroll
+              data={visibleCountries}
+              renderItem={(country, index) => (
+                <div
+                  key={country._id}
+                  className={`table-row ${selectedCountries.some(c => c._id === country._id) ? 'selected' : ''}`}
+                  style={{
+                    backgroundColor: selectedCountries.some(c => c._id === country._id) 
+                      ? `${getCategoryColorForComponent(country.category)}22` 
+                      : index % 2 === 0 ? '#222222' : '#191919'
+                  }}
+                >
+                  <div className="check-cell">
+                    <Checkbox
+                      type="checkbox"
+                      checked={selectedCountries.some(c => c._id === country._id)}
+                      onChange={() => toggleCountrySelection(country)}
                     />
-                  </CountryDescription>
-                </CountryNameCell>
-                <TableCell>
-                  <HighlightValue isGood={country.capitalGainsTax === '0%'}>
-                    {country.capitalGainsTax}
-                  </HighlightValue>
-                </TableCell>
-                <TableCell>
-                  <HighlightValue isGood={country.wealthTax === '0%'}>
-                    {country.wealthTax}
-                  </HighlightValue>
-                </TableCell>
-                <TableCell className="hide-mobile">
-                  {country.residencyInvestment}
-                </TableCell>
-                <TableCell className="hide-mobile">
-                  <FinancialBadge service={country.financialServices}>
-                    {country.financialServices}
-                  </FinancialBadge>
-                </TableCell>
-              </CountryRow>
-            )}
-            hasMore={hasMore}
-            loading={loading}
-            loadMore={loadMoreCountries}
-            loadingComponent={
-              <StaggeredList>
-                <CountryCardSkeleton />
-                <CountryCardSkeleton />
-                <CountryCardSkeleton />
-              </StaggeredList>
-            }
-          />
-        </tbody>
-      </CountryTable>
+                  </div>
+                  <div className="rank-cell">
+                    <RankBadge category={country.category}>
+                      {country.rank}
+                    </RankBadge>
+                  </div>
+                  <div className="country-cell">
+                    <CountryLink to={`/country/${country._id}`}>
+                      {country.name}
+                    </CountryLink>
+                  </div>
+                  <div className="gain-cell">
+                    <HighlightValue isGood={(country.capitalGainsTaxShort || country.capitalGainsTax) === '0%'}>
+                      {country.capitalGainsTaxShort || country.capitalGainsTax}
+                    </HighlightValue>
+                  </div>
+                  <div className="wealth-cell">
+                    <HighlightValue isGood={country.wealthTax === '0%'}>
+                      {country.wealthTax}
+                    </HighlightValue>
+                  </div>
+                  <div className="residency-cell">
+                    <span className="nowrap">{country.residencyInvestment}</span>
+                  </div>
+                  <div className="financial-cell">
+                    <FinancialBadge service={country.financialServices}>
+                      {country.financialServices}
+                    </FinancialBadge>
+                  </div>
+                </div>
+              )}
+              hasMore={hasMore}
+              loading={loading}
+              loadMore={loadMoreCountries}
+              loadingComponent={
+                <StaggeredList>
+                  <CountryCardSkeleton />
+                  <CountryCardSkeleton />
+                  <CountryCardSkeleton />
+                </StaggeredList>
+              }
+            />
+          </div>
+        </div>
+      </TableContainer>
       
       {/* Comparison Modal */}
       <Modal
@@ -469,6 +475,16 @@ const SectionTitle = styled.h2`
   text-align: center;
 `;
 
+const TablePrompt = styled.div`
+  background-color: rgba(247, 147, 26, 0.15);
+  color: ${({ theme }) => theme.colors.accent};
+  padding: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  text-align: center;
+  font-weight: 500;
+`;
+
 const FiltersContainer = styled.div`
   display: flex;
   justify-content: space-between;
@@ -480,6 +496,10 @@ const FiltersContainer = styled.div`
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     flex-direction: column;
     align-items: stretch;
+    
+    > * {
+      width: 100%;
+    }
   }
 `;
 
@@ -488,7 +508,7 @@ const FilterGroup = styled.div`
   align-items: center;
   position: relative;
   flex: 1;
-  min-width: 200px;
+  min-width: 0; /* Allow flex items to shrink below content size */
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     width: 100%;
@@ -550,81 +570,119 @@ const CompareButton = styled.button`
   }
 `;
 
-const CountryTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: ${({ theme }) => theme.borderRadius.md};
+// Table Layout with CSS Grid
+const TableContainer = styled.div`
   overflow: hidden;
-  box-shadow: ${({ theme }) => theme.boxShadow.md};
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #121212;
+  
+  .table-layout {
+    width: 100%;
+  }
+  
+  .nowrap {
+    white-space: nowrap;
+  }
+  
+  .table-header, .table-row {
+    display: grid;
+    grid-template-columns: 3.5% 6.5% 19% 1fr 1fr 1.2fr 0.8fr;
+    min-height: 60px;
+  }
+  
+  .table-header {
+    background-color: #1e1e1e;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-weight: 600;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr 1.2fr;
+      .financial-cell {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr;
+      .residency-cell {
+        display: none;
+      }
+    }
+  }
+  
+  .table-row {
+    border-bottom: 1px solid #2d2d2d;
+    transition: background-color 0.2s;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr 1.2fr;
+      .financial-cell {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      grid-template-columns: 3.5% 6.5% 24% 1fr 1fr;
+      .residency-cell {
+        display: none;
+      }
+    }
+    
+    &:hover {
+      background-color: rgba(247, 147, 26, 0.1) !important;
+    }
+    
+    &.selected {
+      background-color: rgba(247, 147, 26, 0.15) !important;
+    }
+  }
+  
+  .check-cell, .rank-cell, .country-cell, .gain-cell, .wealth-cell, .residency-cell, .financial-cell {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .check-cell {
+    justify-content: center;
+  }
+  
+  .rank-cell {
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  .country-cell {
+    justify-content: flex-start;
+    cursor: pointer;
+    padding-left: 1rem;
+  }
+  
+  .gain-cell, .wealth-cell {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .gain-cell {
+    cursor: pointer;
+  }
+  
+  .residency-cell, .financial-cell {
+    justify-content: center;
+    text-align: center;
+  }
   
   .header-with-icon {
     display: flex;
     align-items: center;
-    gap: ${({ theme }) => theme.spacing.xs};
+    justify-content: center;
+    gap: 4px;
   }
-  
-  .hide-mobile {
-    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-      display: none;
-    }
-  }
-`;
-
-const TableHead = styled.thead`
-  background-color: ${({ theme }) => theme.colors.secondaryBackground};
-  position: sticky;
-  top: 0;
-  z-index: 10;
-`;
-
-const TableHeader = styled.th`
-  padding: ${({ theme }) => theme.spacing.md};
-  text-align: left;
-  color: ${({ theme }) => theme.colors.text};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  cursor: pointer;
-  position: relative;
-  width: ${props => props.width || 'auto'};
-  white-space: nowrap;
-  
-  &:hover {
-    color: ${({ theme }) => theme.colors.accent};
-  }
-`;
-
-const CountryRow = styled.tr`
-  background-color: ${({ selected, theme, category }) => 
-    selected 
-      ? `${getCategoryColor(category)}22` // 22 is hex for ~13% opacity
-      : theme.colors.secondaryBackground};
-  
-  transition: background-color 0.2s ease, transform 0.2s ease;
-  
-  &:nth-child(odd) {
-    background-color: ${({ selected, theme, category }) => 
-      selected 
-        ? `${getCategoryColor(category)}22`
-        : theme.colors.secondaryBackground};
-  }
-  
-  &:nth-child(even) {
-    background-color: ${({ selected, theme, category }) => 
-      selected 
-        ? `${getCategoryColor(category)}22`
-        : 'transparent'};
-  }
-  
-  &:hover {
-    background-color: ${({ theme, category }) => 
-      `${getCategoryColor(category)}33`}; // 33 is hex for 20% opacity
-  }
-`;
-
-const SelectCell = styled.td`
-  padding: ${({ theme }) => theme.spacing.md};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  text-align: center;
-  vertical-align: middle;
 `;
 
 const Checkbox = styled.input`
@@ -634,50 +692,27 @@ const Checkbox = styled.input`
   accent-color: ${({ theme }) => theme.colors.accent};
 `;
 
-const TableCell = styled.td`
-  padding: ${({ theme }) => theme.spacing.md};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  color: ${({ theme }) => theme.colors.text};
-  vertical-align: top;
-`;
-
-const RankCell = styled(TableCell)`
-  font-weight: bold;
-  color: ${({ theme }) => theme.colors.accent};
-  text-align: center;
-`;
-
-const CountryNameCell = styled(TableCell)`
-  font-weight: 500;
-`;
-
 const CountryLink = styled(Link)`
   color: ${({ theme }) => theme.colors.text};
   text-decoration: none;
   font-weight: bold;
-  display: block;
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
   
   &:hover {
     color: ${({ theme }) => theme.colors.accent};
   }
 `;
 
-const CountryDescription = styled.div`
-  color: ${({ theme }) => theme.colors.secondaryText};
-  font-size: 0.9rem;
-  font-weight: normal;
-  margin-top: ${({ theme }) => theme.spacing.xs};
-`;
-
 const RankBadge = styled.div`
-  display: inline-block;
-  background-color: ${({ category }) => getCategoryColor(category)};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ category }) => getCategoryColorForComponent(category) || '#F7931A'};
   color: white;
-  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 0.9rem;
   min-width: 30px;
+  font-weight: bold;
 `;
 
 const HighlightValue = styled.div`
@@ -687,7 +722,7 @@ const HighlightValue = styled.div`
 
 const FinancialBadge = styled.span`
   display: inline-block;
-  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
+  padding: 4px 8px;
   background-color: ${({ service }) => 
     service === 'World-class' ? '#4CAF50' :
     service === 'Advanced' ? '#8BC34A' :
@@ -696,13 +731,14 @@ const FinancialBadge = styled.span`
     service === 'Developing' ? '#FF9800' : '#9E9E9E'};
   color: ${({ service }) => 
     ['World-class', 'Advanced', 'Strong'].includes(service) ? 'white' : 'black'};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  border-radius: 4px;
   font-size: 0.8rem;
+  font-weight: bold;
 `;
 
 const SortIndicator = styled.span`
   display: inline-block;
-  margin-left: ${({ theme }) => theme.spacing.xs};
+  margin-left: 4px;
   width: 0;
   height: 0;
   border-left: 5px solid transparent;
@@ -749,7 +785,7 @@ const SelectedCountryItem = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: ${({ theme }) => theme.spacing.sm};
-  background-color: ${({ theme, category }) => `${getCategoryColor(category)}22`};
+  background-color: ${({ theme, category }) => `${getCategoryColorForComponent(category)}22`};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   
   .country-info {
