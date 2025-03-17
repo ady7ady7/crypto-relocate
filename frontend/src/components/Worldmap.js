@@ -536,13 +536,18 @@ const WorldMap = ({ countries }) => {
                        'Unknown Country';
     
     // Find matching country in our data - handle USA/US special case
-    const country = countries.find(c => {
+    let country = countries.find(c => {
       // Handle special case for United States (both US and USA codes might be used)
       if (countryCode === 'US' || countryCode === 'USA') {
         return c.code === 'US' || c.code === 'USA';
       }
       return c.code === countryCode;
     });
+    
+    // Special handling for Norway
+    if (countryCode === 'NO' && norwegianData) {
+      country = norwegianData;
+    }
     
     if (country) {
       // Get category name based on rank

@@ -5,13 +5,13 @@ import axios from 'axios';
 import styled from 'styled-components';
 import { getCategoryColor, CategoryDefinitions } from '../components/styles/Colors';
 
-
 // Import components
 import { CountryDetailSkeleton } from '../components/Skeletons';
 import { ScrollReveal, SlideUp, SlideIn, fadeInAnimation, hoverElevate, hoverScale } from '../components/animations';
 import { TaxIcon, WealthIcon, ResidencyIcon, BankIcon, RiskIcon, InfoIcon } from '../components/illustrations/Icons';
 import { Collapsible, ExpandableDetails, InfoTooltip, ReadMore } from '../components/disclosure';
-import { HorizontalBarChart, MiniAreaChart, StatCard } from '../components/charts/ComparisonChart';
+import { HorizontalBarChart, MiniAreaChart } from '../components/charts/ComparisonChart';
+import LiquidSphere from '../components/visualizations/LiquidSphere';
 
 const EnhancedCountryPage = () => {
   const { id } = useParams();
@@ -69,6 +69,102 @@ const EnhancedCountryPage = () => {
     }
   };
   
+  // Calculate liquid sphere values
+  const calculateSphereFill = (value, type) => {
+    if (type === 'capitalGainsTax') {
+      // For capital gains tax - 0% is best (95% fill max to keep animation visible)
+      // Higher percentage means worse (lower fill)
+      const numericValue = parseFloat(value);
+      if (isNaN(numericValue)) return 30; // Default for non-numeric
+      return Math.max(5, Math.min(95, 95 - (numericValue * 2.4))); // 0% = 95%, 40% = 0%
+    }
+    
+    if (type === 'wealthTax') {
+      // For wealth tax - 0% is best (95% fill max)
+      if (value === '0%') return 95;
+      return 20; // If any wealth tax, it's low fill
+    }
+    
+    if (type === 'financialServices') {
+      // For financial services rating (capped at 95% for best)
+      switch (value) {
+        case 'World-class': return 95;
+        case 'Advanced': return 80;
+        case 'Strong': return 65;
+        case 'Moderate': return 50;
+        case 'Developing': return 30;
+        case 'Limited': return 15;
+        case 'Minimal': return 5;
+        default: return 10;
+      }
+    }
+    
+    return 50; // Default value
+  };
+  
+  // Get color for liquid sphere
+  const getSphereColor = (value, type) => {
+    if (type === 'capitalGainsTax') {
+      const numericValue = parseFloat(value);
+      if (isNaN(numericValue)) return '#9E9E9E';
+      if (numericValue === 0) return '#4CAF50';
+      if (numericValue < 15) return '#8BC34A';
+      if (numericValue < 25) return '#CDDC39';
+      if (numericValue < 35) return '#FFC107';
+      return '#FF9800';
+    }
+    
+    if (type === 'wealthTax') {
+      return value === '0%' ? '#4CAF50' : '#FFA000';
+    }
+    
+    if (type === 'financialServices') {
+      switch (value) {
+        case 'World-class': return '#4CAF50';
+        case 'Advanced': return '#8BC34A';
+        case 'Strong': return '#CDDC39';
+        case 'Moderate': return '#FFC107';
+        case 'Developing': return '#FF9800';
+        case 'Limited': return '#FF7043';
+        case 'Minimal': return '#F44336';
+        default: return '#9E9E9E';
+      }
+    }
+    
+    return '#F7931A'; // Default color (Bitcoin gold)
+  };
+  
+  // Get additional info for display
+  const getSphereAdditionalInfo = (value, type) => {
+    if (type === 'capitalGainsTax') {
+      const numericValue = parseFloat(value);
+      if (isNaN(numericValue)) return 'Special conditions apply';
+      if (numericValue === 0) return 'No tax on crypto gains';
+      if (numericValue < 15) return 'Very low tax rate';
+      if (numericValue < 25) return 'Moderate tax rate';
+      if (numericValue < 35) return 'High tax rate';
+      return 'Very high tax rate';
+    }
+    
+    if (type === 'wealthTax') {
+      return value === '0%' ? 'No annual wealth tax' : 'Annual wealth tax applies';
+    }
+    
+    if (type === 'financialServices') {
+      switch (value) {
+        case 'World-class': return 'Best-in-class crypto infrastructure';
+        case 'Advanced': return 'Excellent banking support for crypto';
+        case 'Strong': return 'Good banking options available';
+        case 'Moderate': return 'Basic crypto banking available';
+        case 'Developing': return 'Limited but growing support';
+        case 'Limited': return 'Few options for crypto users';
+        case 'Minimal': return 'Very difficult crypto banking';
+        default: return '';
+      }
+    }
+    
+    return '';
+  };
 
   if (loading) return (
     <CountryPageContainer>
@@ -140,15 +236,6 @@ const EnhancedCountryPage = () => {
       { label: 'Very High (35%+)', value: 35 }
     ];
   };
-  
-  // Generate random trend data for visualizations
-  const generateTrendData = (min, max, length = 12) => {
-    const data = [];
-    for (let i = 0; i < length; i++) {
-      data.push(Math.floor(Math.random() * (max - min + 1)) + min);
-    }
-    return data;
-  };
 
   return (
     <CountryPageContainer>
@@ -186,36 +273,45 @@ const EnhancedCountryPage = () => {
           </SlideUp>
           
           <StatsGrid>
-            <StatCard 
-              title="Capital Gains Tax" 
-              value={country.capitalGainsTax}
-              change={-5}
-              chartData={generateTrendData(0, 30, 6)}
-              icon={TaxIcon}
-            />
+            <LiquidSphereCard>
+              <LiquidSphere 
+                label="Capital Gains Tax"
+                value={country.capitalGainsTax}
+                fillPercentage={calculateSphereFill(country.capitalGainsTax, 'capitalGainsTax')}
+                color={getSphereColor(country.capitalGainsTax, 'capitalGainsTax')}
+                additionalInfo={getSphereAdditionalInfo(country.capitalGainsTax, 'capitalGainsTax')}
+                size={100}
+              />
+            </LiquidSphereCard>
             
-            <StatCard 
-              title="Wealth Tax" 
-              value={country.wealthTax}
-              chartData={generateTrendData(0, 15, 6)}
-              icon={WealthIcon}
-            />
+            <LiquidSphereCard>
+              <LiquidSphere 
+                label="Wealth Tax"
+                value={country.wealthTax}
+                fillPercentage={calculateSphereFill(country.wealthTax, 'wealthTax')}
+                color={getSphereColor(country.wealthTax, 'wealthTax')}
+                additionalInfo={getSphereAdditionalInfo(country.wealthTax, 'wealthTax')}
+                size={100}
+              />
+            </LiquidSphereCard>
             
-            <StatCard 
-              title="Residency Investment" 
-              value={country.residencyInvestment}
-              change={10}
-              chartData={generateTrendData(40, 100, 6)}
-              icon={ResidencyIcon}
-              decreaseIsBad={false}
-            />
+            <ResidencyCard>
+              <ResidencyIcon size="28px" />
+              <ResidencyLabel>Residency Investment</ResidencyLabel>
+              <ResidencyValue>{country.residencyInvestment}</ResidencyValue>
+              <ResidencyInfo>Investment required for residency/visa</ResidencyInfo>
+            </ResidencyCard>
             
-            <StatCard 
-              title="Financial Services" 
-              value={country.financialServices}
-              chartData={generateTrendData(50, 90, 6)}
-              icon={BankIcon}
-            />
+            <LiquidSphereCard>
+              <LiquidSphere 
+                label="Financial Services"
+                value={country.financialServices}
+                fillPercentage={calculateSphereFill(country.financialServices, 'financialServices')}
+                color={getSphereColor(country.financialServices, 'financialServices')}
+                additionalInfo={getSphereAdditionalInfo(country.financialServices, 'financialServices')}
+                size={100}
+              />
+            </LiquidSphereCard>
           </StatsGrid>
           
           <ScrollReveal>
@@ -546,6 +642,60 @@ const StatsGrid = styled.div`
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
+`;
+
+const LiquidSphereCard = styled.div`
+  background-color: ${({ theme }) => theme.colors.secondaryBackground};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 230px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: ${({ theme }) => theme.boxShadow.md};
+  }
+`;
+
+const ResidencyCard = styled.div`
+  background-color: ${({ theme }) => theme.colors.secondaryBackground};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 230px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: ${({ theme }) => theme.boxShadow.md};
+  }
+`;
+
+const ResidencyLabel = styled.div`
+  font-weight: 600;
+  font-size: 1rem;
+  margin: ${({ theme }) => theme.spacing.md} 0;
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const ResidencyValue = styled.div`
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: ${({ theme }) => theme.colors.accent};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`;
+
+const ResidencyInfo = styled.div`
+  font-size: 0.8rem;
+  color: ${({ theme }) => theme.colors.secondaryText};
 `;
 
 const InfoCard = styled.div`
