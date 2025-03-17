@@ -705,6 +705,7 @@ const RankBadge = styled.div`
   font-size: 0.9rem;
   min-width: 30px;
   font-weight: bold;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
 
 const HighlightValue = styled.div`

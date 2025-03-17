@@ -579,6 +579,7 @@ const RankBadge = styled.span`
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 1rem;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
 
 const CategoryBadge = styled.span`
@@ -589,6 +590,7 @@ const CategoryBadge = styled.span`
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 1rem;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
 
 const CountryDescription = styled.div`
@@ -853,6 +855,7 @@ const SimilarCountryRank = styled.div`
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   margin-right: ${({ theme }) => theme.spacing.md};
   font-weight: bold;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
 
 const SimilarCountryName = styled.div`
