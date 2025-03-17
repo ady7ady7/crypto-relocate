@@ -16,8 +16,8 @@ export const Colors = {
     border: '#2D2D2D',
     
     // Country category colors
-    countryExcellent: '#4ef037', // Vivid green
-    countryFavorable: '#5be7a9', // Light green
+    countryExcellent: '#4ab800', // Vivid green
+    countryFavorable: '#a8ff82', // Light green
     countryModerate: '#f8fe85', // Amber/yellow
     countryRestrictive: '#ffbd67', // Orange
     countryNotFavorable: '#ff6464', // Grey

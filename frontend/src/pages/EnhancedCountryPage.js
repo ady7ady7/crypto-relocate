@@ -10,8 +10,9 @@ import { CountryDetailSkeleton } from '../components/Skeletons';
 import { ScrollReveal, SlideUp, SlideIn, fadeInAnimation, hoverElevate, hoverScale } from '../components/animations';
 import { TaxIcon, WealthIcon, ResidencyIcon, BankIcon, RiskIcon, InfoIcon } from '../components/illustrations/Icons';
 import { Collapsible, ExpandableDetails, InfoTooltip, ReadMore } from '../components/disclosure';
-import { HorizontalBarChart, MiniAreaChart } from '../components/charts/ComparisonChart';
+import { MiniAreaChart } from '../components/charts/ComparisonChart';
 import LiquidSphere from '../components/visualizations/LiquidSphere';
+import HorizontalTaxScale from '../components/visualizations/HorizontalTaxScale';
 
 const EnhancedCountryPage = () => {
   const { id } = useParams();
@@ -221,20 +222,10 @@ const EnhancedCountryPage = () => {
     </CountryPageContainer>
   );
   
-  // Get rank tier for bar chart
-  const getTaxTiers = () => {
+  // Parse the tax rate for potential use
+  const parseTaxRate = () => {
     const taxRate = parseFloat(country.capitalGainsTax);
-    if (isNaN(taxRate)) return null;
-    
-    // Compare to common tax tiers
-    return [
-      { label: country.name, value: taxRate },
-      { label: 'No Tax (0%)', value: 0 },
-      { label: 'Low (5-15%)', value: 10 },
-      { label: 'Medium (15-25%)', value: 20 },
-      { label: 'High (25-35%)', value: 30 },
-      { label: 'Very High (35%+)', value: 35 }
-    ];
+    return isNaN(taxRate) ? 0 : taxRate;
   };
 
   return (
@@ -280,7 +271,7 @@ const EnhancedCountryPage = () => {
                 fillPercentage={calculateSphereFill(country.capitalGainsTax, 'capitalGainsTax')}
                 color={getSphereColor(country.capitalGainsTax, 'capitalGainsTax')}
                 additionalInfo={getSphereAdditionalInfo(country.capitalGainsTax, 'capitalGainsTax')}
-                size={100}
+                size={window.innerWidth <= 480 ? 70 : window.innerWidth <= 768 ? 85 : 100}
               />
             </LiquidSphereCard>
             
@@ -291,12 +282,12 @@ const EnhancedCountryPage = () => {
                 fillPercentage={calculateSphereFill(country.wealthTax, 'wealthTax')}
                 color={getSphereColor(country.wealthTax, 'wealthTax')}
                 additionalInfo={getSphereAdditionalInfo(country.wealthTax, 'wealthTax')}
-                size={100}
+                size={window.innerWidth <= 480 ? 70 : window.innerWidth <= 768 ? 85 : 100}
               />
             </LiquidSphereCard>
             
             <ResidencyCard>
-              <ResidencyIcon size="28px" />
+              <ResidencyIcon size={window.innerWidth <= 480 ? "22px" : "28px"} />
               <ResidencyLabel>Residency Investment</ResidencyLabel>
               <ResidencyValue>{country.residencyInvestment}</ResidencyValue>
               <ResidencyInfo>Investment required for residency/visa</ResidencyInfo>
@@ -309,7 +300,7 @@ const EnhancedCountryPage = () => {
                 fillPercentage={calculateSphereFill(country.financialServices, 'financialServices')}
                 color={getSphereColor(country.financialServices, 'financialServices')}
                 additionalInfo={getSphereAdditionalInfo(country.financialServices, 'financialServices')}
-                size={100}
+                size={window.innerWidth <= 480 ? 70 : window.innerWidth <= 768 ? 85 : 100}
               />
             </LiquidSphereCard>
           </StatsGrid>
@@ -322,23 +313,22 @@ const EnhancedCountryPage = () => {
               </CardTitle>
               
               <CardContent>
-                {getTaxTiers() && (
-                  <TaxComparisonChart>
-                    <h3>Capital Gains Tax Comparison</h3>
-                    <HorizontalBarChart 
-                      data={getTaxTiers()} 
-                      maxValue={40}
-                      valueLabel="%"
-                      thresholdColors={{
-                        0: '#4CAF50',  // 0% is excellent (green)
-                        10: '#8BC34A', // under 10% is good (light green)
-                        20: '#FFC107', // under 20% is moderate (yellow)
-                        30: '#FF9800', // under 30% is not great (orange)
-                        35: '#F44336'  // over 35% is bad (red)
-                      }}
-                    />
-                  </TaxComparisonChart>
-                )}
+                <TaxScaleContainer>
+                  <HorizontalTaxScale 
+                    countryName={country.name}
+                    taxValue={country.capitalGainsTax}
+                    maxTaxRate={50}
+                    infoText={
+                      country.capitalGainsTax === "0%" ? 
+                        "No capital gains tax is applied to cryptocurrency profits, making this an excellent jurisdiction for crypto investors." : 
+                        `A capital gains tax rate of ${country.capitalGainsTax} is applied to cryptocurrency profits. ${
+                          parseFloat(country.capitalGainsTax) < 15 ? "This is considered favorable compared to global standards." :
+                          parseFloat(country.capitalGainsTax) < 25 ? "This is around the global average for crypto taxation." :
+                          "This is higher than the global average for crypto taxation."
+                        }`
+                    }
+                  />
+                </TaxScaleContainer>
                 
                 <ExpandableDetails summary="Tax Details">
                   <p><strong>Long-term vs Short-term:</strong> {country.capitalGainsTax.includes('%') ? `The capital gains tax rate of ${country.capitalGainsTax} is applied` : 'Special tax treatment may apply'} to cryptocurrency profits.</p>
@@ -640,7 +630,13 @@ const StatsGrid = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.xs};
   }
 `;
 
@@ -658,6 +654,16 @@ const LiquidSphereCard = styled.div`
   &:hover {
     transform: translateY(-5px);
     box-shadow: ${({ theme }) => theme.boxShadow.md};
+  }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    min-height: 200px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
+    min-height: 180px;
   }
 `;
 
@@ -677,6 +683,16 @@ const ResidencyCard = styled.div`
     transform: translateY(-5px);
     box-shadow: ${({ theme }) => theme.boxShadow.md};
   }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    min-height: 200px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
+    min-height: 180px;
+  }
 `;
 
 const ResidencyLabel = styled.div`
@@ -684,6 +700,16 @@ const ResidencyLabel = styled.div`
   font-size: 1rem;
   margin: ${({ theme }) => theme.spacing.md} 0;
   color: ${({ theme }) => theme.colors.text};
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    margin: ${({ theme }) => theme.spacing.sm} 0;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    margin: ${({ theme }) => theme.spacing.xs} 0;
+  }
 `;
 
 const ResidencyValue = styled.div`
@@ -691,11 +717,24 @@ const ResidencyValue = styled.div`
   font-size: 1.3rem;
   color: ${({ theme }) => theme.colors.accent};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    margin-bottom: ${({ theme }) => theme.spacing.xs};
+  }
 `;
 
 const ResidencyInfo = styled.div`
   font-size: 0.8rem;
   color: ${({ theme }) => theme.colors.secondaryText};
+  
+  @media (max-width: 480px) {
+    font-size: 0.7rem;
+  }
 `;
 
 const InfoCard = styled.div`
@@ -721,13 +760,24 @@ const CardContent = styled.div`
   padding: ${({ theme }) => theme.spacing.lg};
 `;
 
-const TaxComparisonChart = styled.div`
+const TaxScaleContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.md};
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
   
-  h3 {
-    margin-top: 0;
-    font-size: 1.2rem;
-    margin-bottom: ${({ theme }) => theme.spacing.md};
+  /* Give enough vertical space for the marker and its bubble */
+  min-height: 180px;
+  text-align: justify;
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    min-height: 170px;
+  }
+  
+  @media (max-width: 480px) {
+    min-height: 160px;
   }
 `;
 
