@@ -24,7 +24,7 @@ const FeaturedCountries = ({ countries }) => {
           {featuredCountries.map((country) => {
             const categoryColor = getCategoryColor(country.category);
             return (
-              <CountryCard key={country._id} to={`/country/${country._id}`}>
+              <CountryCard key={country._id} to={`/country/${country.code.toLowerCase()}`}>
                 <RankBadge color={categoryColor}>#{country.rank}</RankBadge>
                 <CountryName>{country.name}</CountryName>
                 <HighlightsGrid>

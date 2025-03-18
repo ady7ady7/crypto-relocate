@@ -367,7 +367,7 @@ const EnhancedCountryRankings = ({ countries }) => {
                       </RankBadge>
                     </div>
                     <div className="country-cell">
-                      <CountryLink to={`/country/${country._id}`}>
+                      <CountryLink to={`/country/${country.code.toLowerCase()}`}>
                         {country.name}
                       </CountryLink>
                     </div>
@@ -505,7 +505,7 @@ const FilterGroup = styled.div`
   flex: 1;
   min-width: 0; /* Allow flex items to shrink below content size */
   
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+@media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     width: 100%;
   }
 `;

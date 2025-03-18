@@ -24,6 +24,7 @@ const EnhancedCountryPage = () => {
   useEffect(() => {
     const fetchCountry = async () => {
       try {
+        // Using the id parameter directly - this will now be the country code
         const { data } = await axios.get(`http://localhost:5000/api/countries/${id}`);
         setCountry(data);
         
@@ -34,7 +35,7 @@ const EnhancedCountryPage = () => {
         console.error('Error fetching country data:', error);
         
         if (error.response && error.response.status === 404) {
-          setError('Country not found. Please check the ID and try again.');
+          setError('Country not found. Please check the code and try again.');
         } else {
           setError('Error fetching country data. Please try again later.');
         }
@@ -55,7 +56,7 @@ const EnhancedCountryPage = () => {
       
       // Find countries with similar characteristics
       const filtered = data
-        .filter(c => c._id !== currentCountry._id)
+        .filter(c => c.code !== currentCountry.code) // Filter using code instead of _id
         .sort((a, b) => {
           // Simple similarity score based on rank difference
           const aRankDiff = Math.abs(a.rank - currentCountry.rank);
@@ -409,7 +410,7 @@ const EnhancedCountryPage = () => {
               <SimilarCountriesList>
                 {similarCountries.map((country) => (
                   <SimilarCountryItem key={country._id}>
-                    <Link to={`/country/${country._id}`}>
+                    <Link to={`/country/${country.code.toLowerCase()}`}>
                       <SimilarCountryRank color={getCategoryColor(country.category)}>
                         #{country.rank}
                       </SimilarCountryRank>
@@ -576,7 +577,9 @@ const RankBadge = styled.span`
   background-color: ${({ color }) => color || '#F7931A'};
   color: white;
   font-weight: bold;
-  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
+EnhancedCountryPage.js (Continued)
+
+padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 1rem;
   text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)

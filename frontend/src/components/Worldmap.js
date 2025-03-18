@@ -447,7 +447,7 @@ const WorldMap = ({ countries }) => {
         <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Capital Gains Tax:</span> ${country.capitalGainsTaxShort || country.capitalGainsTax}</div>
         <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Residency Investment:</span> ${country.residencyInvestment}</div>
         <div style="margin-bottom: 10px;"><span style="font-weight: 500;">Financial Services:</span> ${country.financialServices}</div>
-        <a href="/country/${country._id}" style="display: block; background-color: #F7931A; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: 500;">
+        <a href="/country/${country.code.toLowerCase()}" style="display: block; background-color: #F7931A; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: 500;">
           View Country Details
         </a>
       </div>
@@ -468,8 +468,8 @@ const WorldMap = ({ countries }) => {
       .setContent(createPopupContent(country))
       .openOn(map);
     } else {
-      // Desktop click behavior (navigate)
-      window.location.href = `/country/${country._id || country.id || country.code.toLowerCase()}`;
+      // Desktop click behavior - use country code for navigation (lowercase)
+      window.location.href = `/country/${country.code.toLowerCase()}`;
     }
   };
   
@@ -701,209 +701,209 @@ const WorldMap = ({ countries }) => {
         </ContinentButton>
         
         <ContinentButton 
-          active={selectedContinent === 'eu'} 
-          onClick={() => setSelectedContinent('eu')}
-        >
-          EU
-          <StatsTooltip>
-            {Object.entries(continentStats.eu || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.eu.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.eu.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-        
-        <ContinentButton 
-          active={selectedContinent === 'na'} 
-          onClick={() => setSelectedContinent('na')}
-        >
-          NA
-          <StatsTooltip>
-            {Object.entries(continentStats.na || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.na.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.na.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-        
-        <ContinentButton 
-          active={selectedContinent === 'sa'} 
-          onClick={() => setSelectedContinent('sa')}
-        >
-          SA
-          <StatsTooltip>
-            {Object.entries(continentStats.sa || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.sa.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.sa.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-        
-        <ContinentButton 
-          active={selectedContinent === 'as'} 
-          onClick={() => setSelectedContinent('as')}
-        >
-          AS
-          <StatsTooltip>
-            {Object.entries(continentStats.as || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.as.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.as.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-        
-        <ContinentButton 
-          active={selectedContinent === 'af'} 
-          onClick={() => setSelectedContinent('af')}
-        >
-          AF
-          <StatsTooltip>
-            {Object.entries(continentStats.af || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.af.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.af.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-        
-        <ContinentButton 
-          active={selectedContinent === 'oc'} 
-          onClick={() => setSelectedContinent('oc')}
-        >
-          OC
-          <StatsTooltip>
-            {Object.entries(continentStats.oc || {}).map(([cat, count]) => count > 0 && (
-              <StatItem color={
-                cat === 'excellent' ? Colors.countryExcellent :
-                cat === 'favorable' ? Colors.countryFavorable :
-                cat === 'moderate' ? Colors.countryModerate :
-                cat === 'restrictive' ? Colors.countryRestrictive :
-                Colors.countryNotFavorable
-              } key={cat}>
-                <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
-                <span className="stat-value">{count} countries</span>
-              </StatItem>
-            ))}
-            <RegionalInsight>
-              <strong>Top Country:</strong> {regionalInsights.oc.topCountry}<br/>
-              <strong>Trend:</strong> {regionalInsights.oc.keyTrend}
-            </RegionalInsight>
-          </StatsTooltip>
-        </ContinentButton>
-      </ContinentSelector>
-      
-      <StyledMapContainer
-        center={[30, 10]}
-        zoom={2}
-        minZoom={1.5}
-        maxZoom={6}
-        scrollWheelZoom={true}
-        zoomControl={true}
-        attributionControl={false}
-        zoomAnimation={true}
-        zoomSnap={0.25}
-        zoomDelta={0.25}
-        wheelDebounceTime={100}
-        wheelPxPerZoomLevel={200}
-        preferCanvas={true}
-        ref={mapRef}
-        whenCreated={(map) => {
-          mapRef.current = map;
-        }}
-      >
-        {/* Use a minimal base map without labels */}
-        <TileLayer
-          url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
-        
-        {geoJsonData && (
-          <GeoJSON 
-            data={geoJsonData}
-            style={style}
-            onEachFeature={onEachFeature}
-          />
-        )}
-        
-        <MapController continent={selectedContinent} />
-        <MapLegend />
+active={selectedContinent === 'eu'} 
+onClick={() => setSelectedContinent('eu')}
+>
+EU
+<StatsTooltip>
+  {Object.entries(continentStats.eu || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.eu.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.eu.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
 
-        {loading && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            color: 'white'
-          }}>
-            Loading map data...
-          </div>
-        )}
-      </StyledMapContainer>
-    </MapWrapper>
-  );
+<ContinentButton 
+active={selectedContinent === 'na'} 
+onClick={() => setSelectedContinent('na')}
+>
+NA
+<StatsTooltip>
+  {Object.entries(continentStats.na || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.na.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.na.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
+
+<ContinentButton 
+active={selectedContinent === 'sa'} 
+onClick={() => setSelectedContinent('sa')}
+>
+SA
+<StatsTooltip>
+  {Object.entries(continentStats.sa || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.sa.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.sa.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
+
+<ContinentButton 
+active={selectedContinent === 'as'} 
+onClick={() => setSelectedContinent('as')}
+>
+AS
+<StatsTooltip>
+  {Object.entries(continentStats.as || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.as.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.as.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
+
+<ContinentButton 
+active={selectedContinent === 'af'} 
+onClick={() => setSelectedContinent('af')}
+>
+AF
+<StatsTooltip>
+  {Object.entries(continentStats.af || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.af.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.af.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
+
+<ContinentButton 
+active={selectedContinent === 'oc'} 
+onClick={() => setSelectedContinent('oc')}
+>
+OC
+<StatsTooltip>
+  {Object.entries(continentStats.oc || {}).map(([cat, count]) => count > 0 && (
+    <StatItem color={
+      cat === 'excellent' ? Colors.countryExcellent :
+      cat === 'favorable' ? Colors.countryFavorable :
+      cat === 'moderate' ? Colors.countryModerate :
+      cat === 'restrictive' ? Colors.countryRestrictive :
+      Colors.countryNotFavorable
+    } key={cat}>
+      <span className="stat-name">{cat.charAt(0).toUpperCase() + cat.slice(1)}:</span>
+      <span className="stat-value">{count} countries</span>
+    </StatItem>
+  ))}
+  <RegionalInsight>
+    <strong>Top Country:</strong> {regionalInsights.oc.topCountry}<br/>
+    <strong>Trend:</strong> {regionalInsights.oc.keyTrend}
+  </RegionalInsight>
+</StatsTooltip>
+</ContinentButton>
+</ContinentSelector>
+
+<StyledMapContainer
+center={[30, 10]}
+zoom={2}
+minZoom={1.5}
+maxZoom={6}
+scrollWheelZoom={true}
+zoomControl={true}
+attributionControl={false}
+zoomAnimation={true}
+zoomSnap={0.25}
+zoomDelta={0.25}
+wheelDebounceTime={100}
+wheelPxPerZoomLevel={200}
+preferCanvas={true}
+ref={mapRef}
+whenCreated={(map) => {
+mapRef.current = map;
+}}
+>
+{/* Use a minimal base map without labels */}
+<TileLayer
+url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png"
+attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+/>
+
+{geoJsonData && (
+<GeoJSON 
+  data={geoJsonData}
+  style={style}
+  onEachFeature={onEachFeature}
+/>
+)}
+
+<MapController continent={selectedContinent} />
+<MapLegend />
+
+{loading && (
+<div style={{
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  backgroundColor: 'rgba(0,0,0,0.7)',
+  padding: '10px 20px',
+  borderRadius: '5px',
+  color: 'white'
+}}>
+  Loading map data...
+</div>
+)}
+</StyledMapContainer>
+</MapWrapper>
+);
 };
 
 export default WorldMap;
