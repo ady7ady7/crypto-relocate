@@ -238,7 +238,7 @@ const EnhancedCountryRankings = ({ countries }) => {
       <FiltersContainer>
         <FilterGroup>
           <SearchIcon>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -252,7 +252,11 @@ const EnhancedCountryRankings = ({ countries }) => {
         </FilterGroup>
         
         <FilterGroup>
-          <FilterIcon size="18px" />
+          <FilterIconWrapper>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </FilterIconWrapper>
           <FilterSelect
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -267,7 +271,12 @@ const EnhancedCountryRankings = ({ countries }) => {
         </FilterGroup>
         
         <FilterGroup>
-          <SortIcon size="18px" />
+          <FilterIconWrapper>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="19 12 12 19 5 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </FilterIconWrapper>
           <FilterSelect
             value={`${sortKey}-${sortOrder}`}
             onChange={(e) => {
@@ -505,48 +514,99 @@ const FilterGroup = styled.div`
   flex: 1;
   min-width: 0; /* Allow flex items to shrink below content size */
   
-@media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     width: 100%;
   }
 `;
 
 const SearchIcon = styled.div`
   position: absolute;
-  left: 12px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: ${({ theme }) => theme.colors.secondaryText};
   z-index: 1;
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    left: 14px;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
 `;
 
 const SearchInput = styled.input`
-  padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.md} ${theme.spacing.md} ${theme.spacing.xl}`};
+  padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.md} ${theme.spacing.md} 48px`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.secondaryBackground};
   color: ${({ theme }) => theme.colors.text};
   width: 100%;
+  font-size: 1rem;
   
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.accent};
   }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.sm} ${theme.spacing.sm} 42px`};
+    font-size: 0.95rem;
+  }
+`;
+
+const FilterIconWrapper = styled.div`
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${({ theme }) => theme.colors.secondaryText};
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    left: 14px;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
 `;
 
 const FilterSelect = styled.select`
-  padding: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.md} ${theme.spacing.md} 48px`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.secondaryBackground};
   color: ${({ theme }) => theme.colors.text};
   cursor: pointer;
   width: 100%;
-  padding-left: ${({ theme }) => theme.spacing.xl};
+  font-size: 1rem;
   appearance: none;
   
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.accent};
+  }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.sm} ${theme.spacing.sm} 42px`};
+    font-size: 0.95rem;
   }
 `;
 
@@ -557,11 +617,17 @@ const CompareButton = styled.button`
   border-radius: ${({ theme }) => theme.borderRadius.md};
   padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.lg}`};
   font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
   
   &:hover {
     background-color: ${({ theme }) => theme.colors.accentHover};
+  }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
+    font-size: 0.95rem;
   }
 `;
 

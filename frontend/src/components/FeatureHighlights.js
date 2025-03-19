@@ -70,8 +70,16 @@ const SectionTitle = styled.h2`
 
 const FeaturesGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: ${({ theme }) => theme.spacing.lg};
+  
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const FeatureCard = styled.div`
@@ -84,16 +92,27 @@ const FeatureCard = styled.div`
   align-items: center;
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  min-height: 260px; /* Set a minimum height for all cards */
   
   &:hover {
     transform: translateY(-5px);
     box-shadow: ${({ theme }) => theme.boxShadow.lg};
   }
+  
+  @media (max-width: 768px) {
+    min-height: 230px;
+  }
+  
+  @media (max-width: 576px) {
+    min-height: auto; /* Allow cards to adjust to content on mobile */
+    padding: ${({ theme }) => theme.spacing.md};
+  }
 `;
 
 const FeatureIconWrapper = styled.div`
-  width: 64px;
-  height: 64px;
+  width: 70px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,17 +120,32 @@ const FeatureIconWrapper = styled.div`
   color: ${({ color }) => color};
   border-radius: ${({ theme }) => theme.borderRadius.round};
   margin-bottom: ${({ theme }) => theme.spacing.md};
+  
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+  }
 `;
 
 const FeatureTitle = styled.h3`
   font-size: 1.3rem;
   margin-bottom: ${({ theme }) => theme.spacing.sm};
   color: ${({ theme }) => theme.colors.text};
+  
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
 `;
 
 const FeatureDescription = styled.p`
   color: ${({ theme }) => theme.colors.secondaryText};
   line-height: 1.5;
+  /* Make sure the text takes the same height regardless of content length */
+  flex-grow: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
+  }
 `;
 
 export default FeatureHighlights;
