@@ -577,9 +577,7 @@ const RankBadge = styled.span`
   background-color: ${({ color }) => color || '#F7931A'};
   color: white;
   font-weight: bold;
-EnhancedCountryPage.js (Continued)
-
-padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 1rem;
   text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)

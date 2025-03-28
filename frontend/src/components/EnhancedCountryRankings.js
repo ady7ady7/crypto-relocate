@@ -10,7 +10,7 @@ import { TaxIcon, ResidencyIcon, BankIcon, RiskIcon, SortIcon, FilterIcon } from
 import { CountryCardSkeleton } from './Skeletons';
 import { ReadMore, InfoTooltip, Modal } from './disclosure';
 import { RadarChart, HorizontalBarChart } from './charts/ComparisonChart';
-import { getCategoryColor, getColorByRank } from './styles/Colors';
+import { getCategoryColor } from './styles/Colors';
 
 const PAGE_SIZE = 10;
 
@@ -170,7 +170,7 @@ const EnhancedCountryRankings = ({ countries }) => {
       // Risk score (inverted for better visualization)
       const riskScore = 70; // Default moderate risk
       
-      const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+      const countryColor = getCategoryColor(country.category);
       
       return {
         name: country.name,
@@ -187,7 +187,7 @@ const EnhancedCountryRankings = ({ countries }) => {
     
     // For bar chart
     const barData = selectedCountries.map(country => {
-      const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+      const countryColor = getCategoryColor(country.category);
       
       return {
         label: country.name,
@@ -351,7 +351,7 @@ const EnhancedCountryRankings = ({ countries }) => {
             <InfiniteScroll
               data={visibleCountries}
               renderItem={(country, index) => {
-                const rankColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+                const rankColor = getCategoryColor(country.category);
                 
                 return (
                   <div
@@ -423,7 +423,7 @@ const EnhancedCountryRankings = ({ countries }) => {
           <h4>Selected Countries</h4>
           <SelectedCountriesList>
             {selectedCountries.map(country => {
-              const countryColor = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+              const countryColor = getCategoryColor(country.category);
               
               return (
                 <SelectedCountryItem key={country._id} color={countryColor}>

@@ -4,7 +4,7 @@ import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
-import { getCategoryColor, getColorByRank, Colors } from './styles/Colors';
+import { getCategoryColor, Colors } from './styles/Colors';
 import { Link } from 'react-router-dom';
 
 // Styled components for the UI
@@ -310,15 +310,6 @@ const isTouchDevice = () => {
      (navigator.msMaxTouchPoints > 0));
 };
 
-// Get category name based on rank - used in multiple places
-const getCategoryName = (rank) => {
-  if (rank >= 1 && rank <= 10) return "Excellent";
-  if (rank >= 11 && rank <= 33) return "Favorable";
-  if (rank >= 34 && rank <= 62) return "Moderate";
-  if (rank >= 63 && rank <= 78) return "Restrictive";
-  return "Not Favorable";
-};
-
 const WorldMap = ({ countries }) => {
   const [geoJsonData, setGeoJsonData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -367,14 +358,6 @@ const WorldMap = ({ countries }) => {
   useEffect(() => {
     if (countries && countries.length > 0) {
       // Initialize stats for excellent, favorable, moderate, restrictive, notFavorable
-      const categoryRanges = {
-        excellent: { min: 1, max: 10 },
-        favorable: { min: 11, max: 33 },
-        moderate: { min: 34, max: 62 },
-        restrictive: { min: 63, max: 78 },
-        notFavorable: { min: 79, max: Infinity }
-      };
-      
       const stats = {
         world: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
         eu: { excellent: 0, favorable: 0, moderate: 0, restrictive: 0, notFavorable: 0 },
@@ -387,26 +370,20 @@ const WorldMap = ({ countries }) => {
       
       // Count countries in each category per continent
       countries.forEach(country => {
-        const rank = parseInt(country.rank);
-        let category = 'notFavorable';
-        
-        // Determine category based on rank ranges
-        for (const [cat, range] of Object.entries(categoryRanges)) {
-          if (rank >= range.min && rank <= range.max) {
-            category = cat;
-            break;
-          }
-        }
+        // Normalize the category name (lowercase and remove spaces)
+        let categoryKey = (country.category || "").toLowerCase().replace(/\s+/g, "");
+        // Handle "Not favorable" special case
+        if (categoryKey === "notfavorable") categoryKey = "notFavorable";
         
         // Use both US and USA for United States
         let continent = countryToContinentMap[country.code] || 'world';
         
         // Increment global count
-        stats.world[category]++;
+        stats.world[categoryKey]++;
         
         // Increment continent count
         if (continent !== 'world') {
-          stats[continent][category]++;
+          stats[continent][categoryKey]++;
         }
       });
       
@@ -415,14 +392,14 @@ const WorldMap = ({ countries }) => {
   }, [countries]);
 
   // Create tooltip content
-  const createTooltipContent = (country, categoryName) => {
-    const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+  const createTooltipContent = (country) => {
+    const color = getCategoryColor(country.category);
     
     return `
       <div style="text-align: left; min-width: 230px; color: #f0f0f0;">
         <strong style="font-size: 14px; color: #ffffff;">${country.name}</strong>
         <br/>
-        <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${categoryName}</span>
+        <span style="color: ${color}; font-weight: 600;">Rank: #${country.rank} - ${country.category}</span>
         <br/>
         <small style="color: #e0e0e0;">Capital Gains Tax: ${country.capitalGainsTaxShort || country.capitalGainsTax}</small>
         <br/>
@@ -435,14 +412,13 @@ const WorldMap = ({ countries }) => {
   
   // Create popup content
   const createPopupContent = (country) => {
-    const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
-    const categoryName = getCategoryName(country.rank);
+    const color = getCategoryColor(country.category);
     
     return `
       <div style="min-width: 220px; color: #f0f0f0;">
         <strong style="font-size: 16px; color: #ffffff; display: block; margin-bottom: 8px;">${country.name}</strong>
         <span style="color: ${color}; font-weight: 600; display: block; margin-bottom: 10px;">
-          Rank: #${country.rank} - ${categoryName}
+          Rank: #${country.rank} - ${country.category}
         </span>
         <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Capital Gains Tax:</span> ${country.capitalGainsTaxShort || country.capitalGainsTax}</div>
         <div style="margin-bottom: 5px;"><span style="font-weight: 500;">Residency Investment:</span> ${country.residencyInvestment}</div>
@@ -500,8 +476,8 @@ const WorldMap = ({ countries }) => {
     });
     
     if (country) {
-      // Get color by rank using the imported getColorByRank function
-      const color = country.category ? getCategoryColor(country.category) : getColorByRank(country.rank);
+      // Get color directly from the country's category
+      const color = getCategoryColor(country.category);
       
       return {
         fillColor: color,
@@ -550,11 +526,8 @@ const WorldMap = ({ countries }) => {
     }
     
     if (country) {
-      // Get category name based on rank
-      const categoryName = getCategoryName(country.rank);
-      
       // Create tooltip with detailed information
-      const tooltipContent = createTooltipContent(country, categoryName);
+      const tooltipContent = createTooltipContent(country);
       
       if (!isTouch) {
         // Desktop hover behavior
