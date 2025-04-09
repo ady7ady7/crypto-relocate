@@ -1,4 +1,7 @@
+// backend/controllers/countryController.js
 const Country = require('../models/Country');
+const fs = require('fs');
+const path = require('path');
 
 // @desc    Get all countries
 // @route   GET /api/countries
@@ -77,8 +80,57 @@ const getCountryByCode = async (req, res) => {
   }
 };
 
+// @desc    Get detailed country data by code
+// @route   GET /api/countries/details/:code
+// @access  Public
+const getCountryDetails = async (req, res) => {
+  try {
+    const code = req.params.code.toLowerCase();
+    
+    // First, try to find the basic country info
+    const country = await Country.findOne({ 
+      $or: [
+        { code: code.toUpperCase() },
+        { code: code.toLowerCase() }
+      ] 
+    });
+    
+    if (!country) {
+      return res.status(404).json({ message: 'Country not found' });
+    }
+    
+    // Try to load the detailed country file
+    try {
+      // Path to the country file
+      const filePath = path.resolve(__dirname, `../data/countries/${code}.js`);
+
+      // Check if file exists
+      if (fs.existsSync(filePath)) {
+        // Import the country file (this is safe since we control these files)
+        const countryDetails = require(filePath);
+        
+        // Merge with basic information if needed
+        // We're using the detailed data as the primary source, but could add missing fields from the MongoDB document
+        
+        res.json(countryDetails);
+      } else {
+        // If the detailed file doesn't exist, just return the basic data
+        res.json(country);
+      }
+    } catch (fileError) {
+      console.error('Error loading country details file:', fileError);
+      // If there's any error loading the file, fall back to basic data
+      res.json(country);
+    }
+  } catch (error) {
+    console.error('Error in getCountryDetails:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getCountries,
   getCountryById,
-  getCountryByCode
+  getCountryByCode,
+  getCountryDetails
 };

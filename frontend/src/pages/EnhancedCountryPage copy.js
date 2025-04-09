@@ -1435,42 +1435,19 @@ const RiskBadge = styled.div`
   }
 `;
 
-const SidebarCard = styled.div`
-  background-color: ${({ theme }) => theme.colors.secondaryBackground};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  overflow: hidden;
-  box-shadow: ${({ theme }) => theme.boxShadow.md};
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-  
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    box-shadow: ${({ theme }) => theme.boxShadow.sm};
-  }
-`;
 
 const SidebarCardTitle = styled.h3`
   font-size: 1.2rem;
   margin: 0;
   padding: ${({ theme }) => theme.spacing.md};
-  color: white;
+  color: ${({ theme }) => theme.colors.text};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.accent};
-  
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    font-size: 1.1rem;
-    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  }
+  color: white;
 `;
 
 const SidebarCardContent = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
-  
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    padding: ${({ theme }) => theme.spacing.sm};
-  }
 `;
 
 const SimilarCountriesList = styled.div`
