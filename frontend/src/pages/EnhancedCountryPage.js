@@ -426,7 +426,9 @@ const EnhancedCountryPage = () => {
                           </ul>
                           <p><strong>Tax Authority:</strong> The local tax authority oversees compliance with tax regulations, including those related to cryptocurrency.</p>
                           {countryDetails && countryDetails.taxAuthorityWebsite && (
-                            <p><a href={countryDetails.taxAuthorityWebsite} target="_blank" rel="noopener noreferrer">Visit the official tax authority website</a> for detailed information.</p>
+                            <OfficialLink href={countryDetails.taxAuthorityWebsite} target="_blank" rel="noopener noreferrer">
+                              Visit the official tax authority website
+                            </OfficialLink>
                           )}
                         </TaxExplanation>
                       </div>
@@ -472,7 +474,7 @@ const EnhancedCountryPage = () => {
                     icon: ResidencyIcon,
                     content: (
                       <div>
-                        <p>The {displayData.name} residency program requires:</p>
+                        <RequirementIntro>The {displayData.name} residency program requires:</RequirementIntro>
                         <ResidencyRequirements>
                           <li><strong>Investment:</strong> {displayData.residencyInvestment}</li>
                           
@@ -490,7 +492,9 @@ const EnhancedCountryPage = () => {
                         </ResidencyRequirements>
                         
                         {countryDetails && countryDetails.residencyWebsite && (
-                          <p><a href={countryDetails.residencyWebsite} target="_blank" rel="noopener noreferrer">Visit the official residency program website</a> for detailed information.</p>
+                          <OfficialLink href={countryDetails.residencyWebsite} target="_blank" rel="noopener noreferrer">
+                            Visit the official residency program website
+                          </OfficialLink>
                         )}
                       </div>
                     )
@@ -502,7 +506,7 @@ const EnhancedCountryPage = () => {
                       <div>
                         {countryDetails && countryDetails.citizenshipYears ? (
                           <>
-                            <p>Path to citizenship in {displayData.name}:</p>
+                            <RequirementIntro>Path to citizenship in {displayData.name}:</RequirementIntro>
                             <ResidencyRequirements>
                               <li><strong>Residency Requirement:</strong> {countryDetails.citizenshipYears}</li>
                               
@@ -520,16 +524,16 @@ const EnhancedCountryPage = () => {
                             </ResidencyRequirements>
                           </>
                         ) : (
-                          <p>Most residency programs can lead to citizenship after a qualifying period, typically 5-10 years. Requirements often include:</p>
-                        )}
-                        
-                        {!countryDetails && (
-                          <ResidencyRequirements>
-                            <li>Continuous residency</li>
-                            <li>Language proficiency</li>
-                            <li>Integration into society</li>
-                            <li>Clean criminal record</li>
-                          </ResidencyRequirements>
+                          <>
+                            <RequirementIntro>Most residency programs can lead to citizenship after a qualifying period, typically 5-10 years. Requirements often include:</RequirementIntro>
+                            
+                            <ResidencyRequirements>
+                              <li><strong>Duration:</strong> Continuous residency for the required period</li>
+                              <li><strong>Language:</strong> Proficiency in the local language</li>
+                              <li><strong>Integration:</strong> Demonstrated integration into society</li>
+                              <li><strong>Background:</strong> Clean criminal record</li>
+                            </ResidencyRequirements>
+                          </>
                         )}
                       </div>
                     )
@@ -597,9 +601,9 @@ const EnhancedCountryPage = () => {
                 )}
                 
                 {countryDetails && countryDetails.cryptoRegulatorWebsite && (
-                  <ResourceLink href={countryDetails.cryptoRegulatorWebsite} target="_blank" rel="noopener noreferrer">
+                  <OfficialLink href={countryDetails.cryptoRegulatorWebsite} target="_blank" rel="noopener noreferrer">
                     Visit Crypto Regulator Website
-                  </ResourceLink>
+                  </OfficialLink>
                 )}
               </CardContent>
             </InfoCard>
@@ -1277,6 +1281,8 @@ const TaxExplanation = styled.div`
   
   ul {
     padding-left: ${({ theme }) => theme.spacing.lg};
+    margin-top: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.md};
     
     @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
       padding-left: ${({ theme }) => theme.spacing.md};
@@ -1285,6 +1291,34 @@ const TaxExplanation = styled.div`
   
   li {
     margin-bottom: ${({ theme }) => theme.spacing.sm};
+  }
+  
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+const RequirementIntro = styled.p`
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 500;
+`;
+
+const OfficialLink = styled.a`
+  display: inline-block;
+  margin-top: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => `${theme.colors.accent}15`};
+  border: 1px solid ${({ theme }) => theme.colors.accent};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  color: ${({ theme }) => theme.colors.accent};
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: ${({ theme }) => `${theme.colors.accent}25`};
+    text-decoration: none;
   }
 `;
 
@@ -1314,9 +1348,32 @@ const ResidencyDetailValue = styled.div`
 
 const ResidencyRequirements = styled.ul`
   padding-left: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   
   li {
-    margin-bottom: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.md};
+    position: relative;
+    list-style-type: none;
+    padding-left: ${({ theme }) => theme.spacing.md};
+    
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: ${({ theme }) => theme.colors.accent};
+      font-weight: bold;
+    }
+    
+    strong {
+      color: ${({ theme }) => theme.colors.text};
+      display: inline-block;
+      margin-right: ${({ theme }) => theme.spacing.xs};
+    }
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding-left: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -1350,15 +1407,18 @@ const SectionValue = styled.div`
   line-height: 1.4;
 `;
 
-// Base grid section
+// Grid section styling for the risk sections
 const GridSection = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: ${({ theme }) => theme.spacing.md};
   
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: ${({ theme }) => theme.spacing.sm};
+  @media (min-width: ${({ theme }) => theme.breakpoints.md}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (min-width: ${({ theme }) => theme.breakpoints.lg}) {
+    grid-template-columns: repeat(2, 1fr);
   }
   
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
@@ -1451,26 +1511,19 @@ const SidebarCard = styled.div`
   }
 `;
 
+
 const SidebarCardTitle = styled.h3`
   font-size: 1.2rem;
   margin: 0;
   padding: ${({ theme }) => theme.spacing.md};
-  color: white;
+  color: ${({ theme }) => theme.colors.text};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.accent};
-  
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    font-size: 1.1rem;
-    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  }
+  color: white;
 `;
 
 const SidebarCardContent = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
-  
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    padding: ${({ theme }) => theme.spacing.sm};
-  }
 `;
 
 const SimilarCountriesList = styled.div`
