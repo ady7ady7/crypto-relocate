@@ -769,26 +769,6 @@ const EnhancedCountryPage = () => {
             </SidebarCard>
           </ScrollReveal>
           
-          <ScrollReveal>
-            <SidebarCard>
-              <SidebarCardTitle>Tax Comparison</SidebarCardTitle>
-              <SidebarCardContent>
-                <HorizontalBarChart 
-                  data={[
-                    { label: displayData.name, value: parseFloat(displayData.capitalGainsTax) || 0, color: getCategoryColor(displayData.category) },
-                    ...(similarCountries.slice(0, 2).map(country => ({
-                      label: country.name,
-                      value: parseFloat(country.capitalGainsTax) || 0,
-                      color: getCategoryColor(country.category)
-                    })))
-                  ]}
-                  title="Capital Gains Tax"
-                  valueLabel="%"
-                  maxValue={45}
-                />
-              </SidebarCardContent>
-            </SidebarCard>
-          </ScrollReveal>
           
           <ScrollReveal>
             <SidebarCard>
@@ -1259,7 +1239,7 @@ const TaxDetailLabel = styled.span`
 
 const TaxDetailValue = styled.span`
   font-weight: 600;
-  color: ${({ highlight, theme }) => highlight ? theme.colors.success : theme.colors.text};
+  color: ${({ theme }) => theme.colors.text};
   
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
     font-size: 1.1rem;

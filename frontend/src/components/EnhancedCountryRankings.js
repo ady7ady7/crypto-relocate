@@ -774,9 +774,10 @@ const RankBadge = styled.div`
   text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
 
+
 const HighlightValue = styled.div`
   font-weight: ${({ isGood }) => isGood ? 'bold' : 'normal'};
-  color: ${({ isGood, theme }) => isGood ? theme.colors.success : theme.colors.text};
+  color: ${({ theme }) => theme.colors.text};
 `;
 
 const FinancialBadge = styled.span`

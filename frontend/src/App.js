@@ -7,6 +7,7 @@ import { theme } from './components/styles/Theme';
 import EnhancedHeader from './components/EnhancedHeader';
 import HomePage from './pages/HomePage';
 import EnhancedCountryPage from './pages/EnhancedCountryPage';
+import FAQPage from './pages/FAQPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/country/:id" element={<EnhancedCountryPage />} />
+          <Route path="/faq" element={<FAQPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

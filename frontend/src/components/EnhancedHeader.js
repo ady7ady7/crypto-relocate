@@ -166,6 +166,9 @@ const EnhancedHeader = () => {
           <NavItem active={location.pathname === '/#rankings'}>
             <Link to="/#rankings">Rankings</Link>
           </NavItem>
+          <NavItem active={location.pathname === '/faq'}>
+            <Link to="/faq">FAQ</Link>
+          </NavItem>
           <NavItem active={location.pathname === '/#about'}>
             <Link to="/#about">About</Link>
           </NavItem>
