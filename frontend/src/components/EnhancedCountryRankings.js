@@ -1,4 +1,4 @@
-// frontend/src/components/EnhancedCountryRankings.js
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -35,6 +35,7 @@ const EnhancedCountryRankings = ({ countries }) => {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [selectedCountries, setSelectedCountries] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activeCountryIndex, setActiveCountryIndex] = useState(0);
   const radarChartRef = useRef(null);
   
   // Filtering and sorting countries
@@ -130,7 +131,12 @@ const EnhancedCountryRankings = ({ countries }) => {
       const isSelected = prev.some(c => c._id === country._id);
       
       if (isSelected) {
-        return prev.filter(c => c._id !== country._id);
+        const newSelection = prev.filter(c => c._id !== country._id);
+        // If we're removing the active country, reset the active index to 0
+        if (prev.findIndex(c => c._id === country._id) === activeCountryIndex) {
+          setActiveCountryIndex(0);
+        }
+        return newSelection;
       } else {
         // Limit to maximum 3 countries for comparison
         if (prev.length >= 3) {
@@ -141,6 +147,11 @@ const EnhancedCountryRankings = ({ countries }) => {
     });
   };
   
+  // Handle country selection for radar chart focus
+  const handleCountryFocus = (index) => {
+    setActiveCountryIndex(index);
+  };
+
   // Initialize radar chart tooltips and interactivity after rendering
   useEffect(() => {
     if (showCompareModal) {
@@ -148,142 +159,32 @@ const EnhancedCountryRankings = ({ countries }) => {
       const timeoutId = setTimeout(() => {
         const tooltip = document.getElementById('radar-tooltip');
         const hitboxes = document.querySelectorAll('.radar-point-hitbox');
-        const countryElements = document.querySelectorAll('.country-data');
-        const legendItems = document.querySelectorAll('.country-legend-item');
         
         // Tooltip functionality
         if (tooltip && hitboxes.length > 0) {
           hitboxes.forEach(hitbox => {
             hitbox.addEventListener('mouseenter', (e) => {
-              // Only show tooltip if the country is not dimmed
-              const countryElement = e.target.closest('.country-data');
-              if (countryElement && !countryElement.classList.contains('dimmed')) {
-                const country = e.target.getAttribute('data-country');
-                const category = e.target.getAttribute('data-category');
-                const value = e.target.getAttribute('data-value');
-                
-                tooltip.querySelector('.country').textContent = `${country} - ${category}`;
-                tooltip.querySelector('.value').textContent = `${value}%`;
-                
-                // Position tooltip near the point
-                const rect = e.target.getBoundingClientRect();
-                const containerRect = tooltip.parentElement.getBoundingClientRect();
-                
-                const tooltipX = rect.left - containerRect.left + rect.width / 2;
-                const tooltipY = rect.top - containerRect.top;
-                
-                tooltip.style.left = `${tooltipX}px`;
-                tooltip.style.top = `${tooltipY - 50}px`;
-                tooltip.style.opacity = '1';
-              }
+              const country = e.target.getAttribute('data-country');
+              const category = e.target.getAttribute('data-category');
+              const value = e.target.getAttribute('data-value');
+              
+              tooltip.querySelector('.country').textContent = `${country} - ${category}`;
+              tooltip.querySelector('.value').textContent = `${value}%`;
+              
+              // Position tooltip near the point
+              const rect = e.target.getBoundingClientRect();
+              const containerRect = tooltip.parentElement.getBoundingClientRect();
+              
+              const tooltipX = rect.left - containerRect.left + rect.width / 2;
+              const tooltipY = rect.top - containerRect.top;
+              
+              tooltip.style.left = `${tooltipX}px`;
+              tooltip.style.top = `${tooltipY - 50}px`;
+              tooltip.style.opacity = '1';
             });
             
             hitbox.addEventListener('mouseleave', () => {
               tooltip.style.opacity = '0';
-            });
-            
-            // Disable click events on dimmed elements
-            hitbox.addEventListener('click', (e) => {
-              const countryElement = e.target.closest('.country-data');
-              if (countryElement && countryElement.classList.contains('dimmed')) {
-                e.stopPropagation();
-                e.preventDefault();
-                return false;
-              }
-            });
-          });
-        }
-        
-        // Country highlight functionality - clicking on legend or SVG elements
-        if (countryElements.length > 0 && legendItems.length > 0) {
-          let highlightedCountry = null;
-          
-          const highlightCountry = (countryName, countryIndex) => {
-            // If already highlighted, unhighlight
-            if (highlightedCountry === countryName) {
-              countryElements.forEach(el => {
-                el.classList.remove('highlighted');
-                el.classList.remove('dimmed');
-              });
-              
-              legendItems.forEach(item => {
-                item.classList.remove('highlighted');
-                item.classList.remove('dimmed');
-              });
-              
-              // Make all hitboxes clickable again
-              hitboxes.forEach(hitbox => {
-                hitbox.style.pointerEvents = 'auto';
-              });
-              
-              highlightedCountry = null;
-            } else {
-              // Highlight the selected country
-              countryElements.forEach(el => {
-                if (el.getAttribute('data-country-name') === countryName) {
-                  el.classList.add('highlighted');
-                  el.classList.remove('dimmed');
-                  
-                  // Enable interactions with this country's points
-                  const countryPoints = el.querySelectorAll('.radar-point-hitbox');
-                  countryPoints.forEach(point => {
-                    point.style.pointerEvents = 'auto';
-                  });
-                } else {
-                  el.classList.add('dimmed');
-                  el.classList.remove('highlighted');
-                  
-                  // Disable interactions with other countries' points
-                  const countryPoints = el.querySelectorAll('.radar-point-hitbox');
-                  countryPoints.forEach(point => {
-                    point.style.pointerEvents = 'none';
-                  });
-                }
-              });
-              
-              legendItems.forEach(item => {
-                if (item.getAttribute('data-country-name') === countryName) {
-                  item.classList.add('highlighted');
-                  item.classList.remove('dimmed');
-                } else {
-                  item.classList.add('dimmed');
-                  item.classList.remove('highlighted');
-                }
-              });
-              
-              highlightedCountry = countryName;
-            }
-          };
-          
-          // Add click handlers to country elements in the chart
-          countryElements.forEach(el => {
-            const countryName = el.getAttribute('data-country-name');
-            const countryIndex = el.getAttribute('data-country-index');
-            
-            el.addEventListener('click', () => {
-              highlightCountry(countryName, countryIndex);
-            });
-          });
-          
-          // Add click handlers to legend items
-          legendItems.forEach(item => {
-            const countryName = item.getAttribute('data-country-name');
-            const countryIndex = item.getAttribute('data-country-index');
-            
-            item.addEventListener('click', () => {
-              highlightCountry(countryName, countryIndex);
-            });
-          });
-          
-          // Add click handlers to individual data points
-          const dataPoints = document.querySelectorAll('.data-point');
-          dataPoints.forEach(point => {
-            point.addEventListener('click', (e) => {
-              const countryName = point.getAttribute('data-country-name');
-              const countryIndex = point.getAttribute('data-country-index');
-              // Prevent point clicks from causing conflicts
-              e.stopPropagation();
-              highlightCountry(countryName, countryIndex);
             });
           });
         }
@@ -291,7 +192,7 @@ const EnhancedCountryRankings = ({ countries }) => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [showCompareModal, selectedCountries]);
+  }, [showCompareModal, selectedCountries, activeCountryIndex]);
   
   // Render comparison chart data
   const renderComparisonData = () => {
@@ -361,6 +262,19 @@ const EnhancedCountryRankings = ({ countries }) => {
     
     return (
       <ComparisonContainer ref={radarChartRef}>
+        <CountrySelectionTabs>
+          {selectedCountries.map((country, idx) => (
+            <CountryTab 
+              key={country._id} 
+              active={idx === activeCountryIndex}
+              onClick={() => handleCountryFocus(idx)}
+              color={getCategoryColor(country.category)}
+            >
+              {country.name}
+            </CountryTab>
+          ))}
+        </CountrySelectionTabs>
+        
         <ChartsGrid>
           <ChartCard>
             <h4>Overall Metrics</h4>
@@ -373,7 +287,8 @@ const EnhancedCountryRankings = ({ countries }) => {
                 'Financial Services',
                 'Risk Level'
               ]} 
-              size={300}
+              size={350}
+              activeCountryIndex={activeCountryIndex}
             />
           </ChartCard>
           
@@ -585,16 +500,24 @@ const EnhancedCountryRankings = ({ countries }) => {
         <SelectedCountriesContainer>
           <h4>Selected Countries</h4>
           <SelectedCountriesList>
-            {selectedCountries.map(country => {
+            {selectedCountries.map((country, idx) => {
               const countryColor = getCategoryColor(country.category);
               
               return (
-                <SelectedCountryItem key={country._id} color={countryColor}>
+                <SelectedCountryItem 
+                  key={country._id} 
+                  color={countryColor}
+                  active={idx === activeCountryIndex}
+                  onClick={() => handleCountryFocus(idx)}
+                >
                   <div className="country-info">
                     <strong>{country.name}</strong>
                     <span>Rank #{country.rank}</span>
                   </div>
-                  <RemoveButton onClick={() => toggleCountrySelection(country)}>
+                  <RemoveButton onClick={(e) => {
+                    e.stopPropagation(); // Prevent activation of the country when removing
+                    toggleCountrySelection(country);
+                  }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -905,7 +828,7 @@ const TableContainer = styled.div`
     gap: 4px;
   }
 `;
-
+// The rest of the styled components
 const Checkbox = styled.input`
   width: 18px;
   height: 18px;
@@ -936,7 +859,6 @@ const RankBadge = styled.div`
   font-weight: bold;
   text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
 `;
-
 
 const HighlightValue = styled.div`
   font-weight: ${({ isGood }) => isGood ? 'bold' : 'normal'};
@@ -978,6 +900,10 @@ const ChartsGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const ChartCard = styled.div`
@@ -990,26 +916,89 @@ const ChartCard = styled.div`
     margin-top: 0;
     text-align: center;
     margin-bottom: ${({ theme }) => theme.spacing.md};
+    font-size: 1.2rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    
+    h4 {
+      font-size: 1.1rem;
+      margin-bottom: ${({ theme }) => theme.spacing.sm};
+    }
+  }
+`;
+
+const CountrySelectionTabs = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const CountryTab = styled.button`
+  background-color: ${({ active, color, theme }) => 
+    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.1)'};
+  color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
+  border: 1px solid ${({ active, color, theme }) => 
+    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
+  font-weight: ${({ active }) => active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  
+  &:hover {
+    background-color: ${({ active, color, theme }) => 
+      active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.15)'};
+    transform: translateY(-2px);
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
 const SelectedCountriesContainer = styled.div`
   margin-top: ${({ theme }) => theme.spacing.lg};
+  
+  h4 {
+    margin-bottom: ${({ theme }) => theme.spacing.md};
+    font-size: 1.2rem;
+  }
 `;
 
 const SelectedCountriesList = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.xs};
+  }
 `;
 
 const SelectedCountryItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${({ theme }) => theme.spacing.sm};
-  background-color: ${({ theme, color }) => `${color}22`};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  padding: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme, color, active }) => 
+    active ? `${color}33` : `${color}22`};
+  border: 1px solid ${({ color, active }) => 
+    active ? color : 'transparent'};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  transition: all 0.2s ease;
+  cursor: pointer;
   
   .country-info {
     display: flex;
@@ -1017,12 +1006,32 @@ const SelectedCountryItem = styled.div`
   }
   
   strong {
-    font-size: 1rem;
+    font-size: 1.1rem;
+    color: ${({ theme, active }) => 
+      active ? theme.colors.text : theme.colors.secondaryText};
   }
   
   span {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: ${({ theme }) => theme.colors.secondaryText};
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    background-color: ${({ color }) => `${color}33`};
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
+    
+    strong {
+      font-size: 1rem;
+    }
+    
+    span {
+      font-size: 0.8rem;
+    }
   }
 `;
 
@@ -1031,10 +1040,14 @@ const RemoveButton = styled.button`
   border: none;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.secondaryText};
+  padding: ${({ theme }) => theme.spacing.xs};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  transition: all 0.2s ease;
   
   &:hover {
     color: ${({ theme }) => theme.colors.danger};
+    background-color: rgba(244, 67, 54, 0.1);
   }
 `;
 
-export default EnhancedCountryRankings;
+export default EnhancedCountryRankings;;
