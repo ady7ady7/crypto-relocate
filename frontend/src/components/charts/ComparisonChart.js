@@ -49,13 +49,13 @@ export const HorizontalBarChart = ({ data, title, valueLabel, maxValue, threshol
   );
 };
 
-// Radar chart for comparison of multiple metrics
-export const RadarChart = ({ data, categories, size = 300 }) => {
+// Modified RadarChart component for the ComparisonChart.js file
+export const RadarChart = ({ data, categories, size = 350, activeCountryIndex = 0 }) => {
   // Increase the size to accommodate labels better
-  const adjustedSize = size * 1.3;
+  const adjustedSize = size * 1.4; // Increased size factor for better visibility
   const centerX = adjustedSize / 2;
   const centerY = adjustedSize / 2;
-  const radius = size * 0.3; // Smaller radius to ensure more space for labels
+  const radius = size * 0.35; // Adjusted radius for better spacing
   const sides = categories.length;
   
   // Force distinct colors for better contrast regardless of country category
@@ -98,7 +98,10 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
   };
 
   // Modify opacity for better distinction (2nd and 3rd countries)
-  const getCountryOpacity = (idx) => {
+  const getCountryOpacity = (idx, isActive) => {
+    // If not active country, reduce opacity
+    if (idx !== activeCountryIndex && isActive) return 0.35;
+    
     // First country (highest rank) gets full opacity
     if (idx === 0) return 1;
     // Second country gets medium opacity
@@ -111,7 +114,7 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
     <RadarChartContainer>
       <InteractionTip>
         <TipIcon>💡</TipIcon>
-        Click on a country or data point for more details
+        Click on a data point to see more details
       </InteractionTip>
       
       <svg width="100%" height="100%" viewBox={`0 0 ${adjustedSize} ${adjustedSize}`} preserveAspectRatio="xMidYMid meet">
@@ -140,14 +143,16 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
           {data.map((country, idx) => {
             const points = getDataPoints(country.values);
             const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ');
-            const opacity = getCountryOpacity(idx);
+            // Modify opacity based on active country
+            const isActive = idx === activeCountryIndex;
+            const opacity = getCountryOpacity(idx, true);
             // Use distinct colors instead of country colors
             const color = distinctColors[idx] || country.color;
             
             return (
               <g 
                 key={`country-${idx}`} 
-                className="country-data"
+                className={`country-data ${isActive ? 'highlighted' : 'dimmed'}`}
                 data-country-name={country.name}
                 data-country-index={idx}
               >
@@ -178,6 +183,7 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
                     data-country-name={country.name}
                     data-country-index={idx}
                     data-category-idx={i}
+                    style={{ pointerEvents: isActive ? 'all' : 'none' }}
                   >
                     {/* Outer glow for contrast */}
                     <circle 
@@ -200,18 +206,20 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
                       className="point-circle"
                     />
                     
-                    {/* Tooltip hitbox with hover data */}
-                    <circle 
-                      cx={point.x} 
-                      cy={point.y} 
-                      r="12" 
-                      fill="transparent"
-                      className="radar-point-hitbox"
-                      data-country={country.name}
-                      data-country-index={idx}
-                      data-category={categories[i]}
-                      data-value={country.values[i]}
-                    />
+                    {/* Tooltip hitbox with hover data - only active for the current country */}
+                    {isActive && (
+                      <circle 
+                        cx={point.x} 
+                        cy={point.y} 
+                        r="12" 
+                        fill="transparent"
+                        className="radar-point-hitbox"
+                        data-country={country.name}
+                        data-country-index={idx}
+                        data-category={categories[i]}
+                        data-value={country.values[i]}
+                      />
+                    )}
                   </g>
                 ))}
               </g>
@@ -222,8 +230,8 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
           {categoryPoints.map((point, i) => {
             const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
             
-            // Significantly increased label offset for better visibility
-            const labelOffset = radius * 0.4; 
+            // Further increased label offset for better visibility
+            const labelOffset = radius * 0.5; 
             const x = centerX + (radius + labelOffset) * Math.cos(angle);
             const y = centerY + (radius + labelOffset) * Math.sin(angle);
             
@@ -240,7 +248,7 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
                 <text 
                   x={x} 
                   y={y} 
-                  fontSize="13" 
+                  fontSize="14" 
                   textAnchor={anchor} 
                   fill="black"
                   strokeWidth="4"
@@ -254,7 +262,7 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
                 <text 
                   x={x} 
                   y={y} 
-                  fontSize="13" 
+                  fontSize="14" 
                   textAnchor={anchor} 
                   fill="white"
                   fontWeight="bold"
@@ -266,29 +274,6 @@ export const RadarChart = ({ data, categories, size = 300 }) => {
           })}
         </g>
       </svg>
-      
-      {/* Enhanced legend for countries with better contrast */}
-      <ChartLegend>
-        {data.map((country, idx) => {
-          const opacity = getCountryOpacity(idx);
-          // Use distinct colors instead of country colors
-          const color = distinctColors[idx] || country.color;
-          
-          return (
-            <LegendItem 
-              key={`legend-${idx}`} 
-              className="country-legend-item"
-              data-country-name={country.name}
-              data-country-index={idx}
-            >
-              <LegendColorBox color={color} opacity={opacity}>
-                <LegendColorCircle color={color} opacity={opacity} />
-              </LegendColorBox>
-              <LegendText>{country.name}</LegendText>
-            </LegendItem>
-          );
-        })}
-      </ChartLegend>
       
       {/* Enhanced tooltip for displaying values on hover */}
       <RadarTooltip id="radar-tooltip">
@@ -394,14 +379,14 @@ const BarValue = styled.div`
   font-weight: bold;
 `;
 
-// Radar chart specific styled components
+/* RadarChart container styling */
 const RadarChartContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  height: 390px; /* Increased height to accommodate the tooltip */
+  height: 450px; /* Increased height for better visibility */
   margin-bottom: 20px;
   
   /* Add hover effect for visualization points */
@@ -416,7 +401,7 @@ const RadarChartContainer = styled.div`
   svg {
     width: 100%;
     height: 100%;
-    max-width: 400px; /* Maximum width to maintain readability */
+    max-width: 450px; /* Increased maximum width */
   }
   
   /* Styling for highlighting selected country */
@@ -433,6 +418,11 @@ const RadarChartContainer = styled.div`
     .point-shadow {
       opacity: 0.3;
     }
+    
+    /* Make dimmed points non-interactive */
+    .data-point {
+      pointer-events: none;
+    }
   }
   
   .country-data.highlighted {
@@ -448,6 +438,11 @@ const RadarChartContainer = styled.div`
     .point-shadow {
       opacity: 1;
     }
+    
+    /* Make highlighted points interactive */
+    .data-point {
+      pointer-events: auto;
+    }
   }
   
   /* Styles for legend items when highlighting */
@@ -462,11 +457,11 @@ const RadarChartContainer = styled.div`
   }
   
   @media (max-width: 768px) {
-    height: 350px;
+    height: 400px;
   }
   
   @media (max-width: 480px) {
-    height: 330px;
+    height: 350px;
   }
 `;
 
@@ -524,6 +519,63 @@ const RadarTooltip = styled.div`
     border-color: rgba(20, 20, 20, 0.95) transparent transparent transparent;
   }
 `;
+
+
+/* Updated CountrySelectionTabs styling */
+const CountrySelectionTabs = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+/* Updated CountryTab styling */
+const CountryTab = styled.button`
+  background-color: ${({ active, color, theme }) => 
+    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.1)'};
+  color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
+  border: 1px solid ${({ active, color, theme }) => 
+    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
+  font-weight: ${({ active }) => active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  
+  &:hover {
+    background-color: ${({ active, color, theme }) => 
+      active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.15)'};
+    transform: translateY(-2px);
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
+  }
+`;
+
+/* Updated ChartsGrid styling */
+const ChartsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 
 const ChartLegend = styled.div`
   display: flex;

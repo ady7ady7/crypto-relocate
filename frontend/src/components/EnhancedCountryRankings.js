@@ -194,118 +194,151 @@ const EnhancedCountryRankings = ({ countries }) => {
     }
   }, [showCompareModal, selectedCountries, activeCountryIndex]);
   
-  // Render comparison chart data
-  const renderComparisonData = () => {
-    if (selectedCountries.length === 0) return null;
+// Updated renderComparisonData function for EnhancedCountryRankings.js
+const renderComparisonData = () => {
+  if (selectedCountries.length === 0) return null;
+  
+  // For radar chart
+  const radarData = selectedCountries.map(country => {
+    // Parse numeric values from tax percentages and other metrics
+    const capitalGainsTax = (country.capitalGainsTaxShort || country.capitalGainsTax).includes('%') 
+      ? 100 - parseFloat(country.capitalGainsTaxShort || country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
+      : 0;
     
-    // For radar chart
-    const radarData = selectedCountries.map(country => {
-      // Parse numeric values from tax percentages and other metrics
-      const capitalGainsTax = (country.capitalGainsTaxShort || country.capitalGainsTax).includes('%') 
-        ? 100 - parseFloat(country.capitalGainsTaxShort || country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
-        : 0;
-      
-      // Map financial services to numeric values
-      const financialServicesScore = 
-        country.financialServices === 'World-class' ? 100 :
-        country.financialServices === 'Advanced' ? 80 :
-        country.financialServices === 'Strong' ? 60 :
-        country.financialServices === 'Moderate' ? 40 :
-        country.financialServices === 'Developing' ? 20 : 10;
-      
-      // Derive residency score based on investment amount
-      const residencyText = country.residencyInvestment;
-      let residencyScore = 50; // Default
-      
-      if (residencyText.includes('0k') || residencyText.includes('No ')) {
-        residencyScore = 90;
-      } else if (residencyText.includes('100k') || residencyText.includes('50k')) {
-        residencyScore = 80;
-      } else if (residencyText.includes('200k') || residencyText.includes('150k')) {
-        residencyScore = 70;
-      } else if (residencyText.includes('300k') || residencyText.includes('500k')) {
-        residencyScore = 60;
-      } else if (residencyText.includes('1M')) {
-        residencyScore = 40;
-      } else if (residencyText.includes('2M') || residencyText.includes('3M')) {
-        residencyScore = 20;
-      }
-      
-      // Risk score (inverted for better visualization)
-      const riskScore = 70; // Default moderate risk
-      
-      const countryColor = getCategoryColor(country.category);
-      
-      return {
-        name: country.name,
-        color: countryColor,
-        values: [
-          capitalGainsTax,           // Tax friendliness
-          country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
-          residencyScore,            // Residency accessibility
-          financialServicesScore,    // Financial services
-          riskScore                  // Risk assessment
-        ]
-      };
-    });
+    // Map financial services to numeric values
+    const financialServicesScore = 
+      country.financialServices === 'World-class' ? 100 :
+      country.financialServices === 'Advanced' ? 80 :
+      country.financialServices === 'Strong' ? 60 :
+      country.financialServices === 'Moderate' ? 40 :
+      country.financialServices === 'Developing' ? 20 : 10;
     
-    // For bar chart
-    const barData = selectedCountries.map(country => {
-      const countryColor = getCategoryColor(country.category);
-      
-      return {
-        label: country.name,
-        value: 100 - country.rank, // Invert rank for visualization (higher is better)
-        color: countryColor
-      };
-    });
+    // Derive residency score based on investment amount
+    const residencyText = country.residencyInvestment;
+    let residencyScore = 50; // Default
     
-    return (
-      <ComparisonContainer ref={radarChartRef}>
-        <CountrySelectionTabs>
-          {selectedCountries.map((country, idx) => (
-            <CountryTab 
-              key={country._id} 
-              active={idx === activeCountryIndex}
-              onClick={() => handleCountryFocus(idx)}
-              color={getCategoryColor(country.category)}
-            >
-              {country.name}
-            </CountryTab>
-          ))}
-        </CountrySelectionTabs>
+    if (residencyText.includes('0k') || residencyText.includes('No ')) {
+      residencyScore = 90;
+    } else if (residencyText.includes('100k') || residencyText.includes('50k')) {
+      residencyScore = 80;
+    } else if (residencyText.includes('200k') || residencyText.includes('150k')) {
+      residencyScore = 70;
+    } else if (residencyText.includes('300k') || residencyText.includes('500k')) {
+      residencyScore = 60;
+    } else if (residencyText.includes('1M')) {
+      residencyScore = 40;
+    } else if (residencyText.includes('2M') || residencyText.includes('3M')) {
+      residencyScore = 20;
+    }
+    
+    // Risk score (inverted for better visualization)
+    const riskScore = 70; // Default moderate risk
+    
+    const countryColor = getCategoryColor(country.category);
+    
+    return {
+      name: country.name,
+      color: countryColor,
+      values: [
+        capitalGainsTax,           // Tax friendliness
+        country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
+        residencyScore,            // Residency accessibility
+        financialServicesScore,    // Financial services
+        riskScore                  // Risk assessment
+      ]
+    };
+  });
+  
+  // For bar chart
+  const barData = selectedCountries.map(country => {
+    const countryColor = getCategoryColor(country.category);
+    
+    return {
+      label: country.name,
+      value: 100 - country.rank, // Invert rank for visualization (higher is better)
+      color: countryColor
+    };
+  });
+  
+  return (
+    <ComparisonContainer ref={radarChartRef}>
+      {/* Country selection tabs moved to the top */}
+      <CountrySelectionTabs>
+        {selectedCountries.map((country, idx) => (
+          <CountryTab 
+            key={country._id} 
+            active={idx === activeCountryIndex}
+            onClick={() => handleCountryFocus(idx)}
+            color={getCategoryColor(country.category)}
+          >
+            {country.name}
+          </CountryTab>
+        ))}
+      </CountrySelectionTabs>
+      
+      <ChartsGrid>
+        <ChartCard>
+          <h4>Overall Metrics</h4>
+          <RadarChart 
+            data={radarData} 
+            categories={[
+              'Tax Friendliness', 
+              'Wealth Tax', 
+              'Residency Access',
+              'Financial Services',
+              'Risk Level'
+            ]} 
+            size={400}
+            activeCountryIndex={activeCountryIndex}
+          />
+        </ChartCard>
         
-        <ChartsGrid>
-          <ChartCard>
-            <h4>Overall Metrics</h4>
-            <RadarChart 
-              data={radarData} 
-              categories={[
-                'Tax Friendliness', 
-                'Wealth Tax', 
-                'Residency Access',
-                'Financial Services',
-                'Risk Level'
-              ]} 
-              size={350}
-              activeCountryIndex={activeCountryIndex}
+        <ChartCard>
+          <h4>Overall Ranking Score</h4>
+          <BarChartMobileAdjust>
+            <HorizontalBarChart 
+              data={barData} 
+              maxValue={100} 
+              valueLabel="pts"
             />
-          </ChartCard>
-          
-          <ChartCard>
-            <h4>Overall Ranking Score</h4>
-            <BarChartMobileAdjust>
-              <HorizontalBarChart 
-                data={barData} 
-                maxValue={100} 
-                valueLabel="pts"
-              />
-            </BarChartMobileAdjust>
-          </ChartCard>
-        </ChartsGrid>
-      </ComparisonContainer>
-    );
-  };
+          </BarChartMobileAdjust>
+        </ChartCard>
+      </ChartsGrid>
+      
+      <SelectedCountriesContainer>
+        <h4>Selected Countries</h4>
+        <SelectedCountriesList>
+          {selectedCountries.map((country, idx) => {
+            const countryColor = getCategoryColor(country.category);
+            
+            return (
+              <SelectedCountryItem 
+                key={country._id} 
+                color={countryColor}
+                active={idx === activeCountryIndex}
+                onClick={() => handleCountryFocus(idx)}
+              >
+                <div className="country-info">
+                  <strong>{country.name}</strong>
+                  <span>Rank #{country.rank}</span>
+                </div>
+                <RemoveButton onClick={(e) => {
+                  e.stopPropagation(); // Prevent activation of the country when removing
+                  toggleCountrySelection(country);
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </RemoveButton>
+              </SelectedCountryItem>
+            );
+          })}
+        </SelectedCountriesList>
+      </SelectedCountriesContainer>
+    </ComparisonContainer>
+  );
+};
   
   return (
     <RankingsContainer id="rankings">
@@ -893,6 +926,10 @@ const SortIndicator = styled.span`
 
 const ComparisonContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const ChartsGrid = styled.div`
@@ -906,10 +943,15 @@ const ChartsGrid = styled.div`
   }
 `;
 
+// Updated chart card styling for better visibility
 const ChartCard = styled.div`
   background-color: ${({ theme }) => theme.colors.secondaryBackground};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   padding: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   ${hoverElevate}
   
   h4 {
