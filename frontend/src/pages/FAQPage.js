@@ -1135,7 +1135,7 @@ const pulseAnimation = keyframes`
   }
 `;
 
-// Create custom styled bullet points with better spacing
+// Create custom styled bullet points with responsive layout
 const StyledBulletList = styled.ul`
   list-style: none;
   padding: 0;
@@ -1143,15 +1143,15 @@ const StyledBulletList = styled.ul`
 `;
 
 const StyledBulletItem = styled.li`
-  display: flex;
-  align-items: flex-start;
+  position: relative;
+  padding-left: 24px;
   margin-bottom: ${({ theme }) => theme.spacing.sm};
   line-height: 1.5;
-  width: 100%;
   
   strong {
     color: ${({ theme }) => theme.colors.text};
     font-weight: 600;
+    margin-right: 4px;
   }
   
   &:last-child {
@@ -1161,16 +1161,14 @@ const StyledBulletItem = styled.li`
 
 // Create the animated bullet point
 const BulletPoint = styled.span`
-  display: inline-block;
+  position: absolute;
+  left: 0;
+  top: 8px;
   width: 8px;
   height: 8px;
   min-width: 8px;
   border-radius: 50%;
   background-color: ${({ theme }) => theme.colors.accent};
-  margin-right: 12px;
-  margin-top: 8px;
-  position: relative;
-  flex-shrink: 0;
   
   /* Create the glow effect */
   &::after {

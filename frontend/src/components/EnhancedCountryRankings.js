@@ -1,5 +1,5 @@
 // frontend/src/components/EnhancedCountryRankings.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -14,6 +14,16 @@ import { getCategoryColor } from './styles/Colors';
 
 const PAGE_SIZE = 10;
 
+// For horizontal bar chart on mobile
+const BarChartMobileAdjust = styled.div`
+  @media (max-width: 480px) {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-left: -10px; /* Adjust as needed to center the chart on mobile */
+  }
+`;
+
 const EnhancedCountryRankings = ({ countries }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState('rank');
@@ -25,6 +35,7 @@ const EnhancedCountryRankings = ({ countries }) => {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [selectedCountries, setSelectedCountries] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const radarChartRef = useRef(null);
   
   // Filtering and sorting countries
   useEffect(() => {
@@ -130,6 +141,158 @@ const EnhancedCountryRankings = ({ countries }) => {
     });
   };
   
+  // Initialize radar chart tooltips and interactivity after rendering
+  useEffect(() => {
+    if (showCompareModal) {
+      // Delay to ensure the DOM is ready
+      const timeoutId = setTimeout(() => {
+        const tooltip = document.getElementById('radar-tooltip');
+        const hitboxes = document.querySelectorAll('.radar-point-hitbox');
+        const countryElements = document.querySelectorAll('.country-data');
+        const legendItems = document.querySelectorAll('.country-legend-item');
+        
+        // Tooltip functionality
+        if (tooltip && hitboxes.length > 0) {
+          hitboxes.forEach(hitbox => {
+            hitbox.addEventListener('mouseenter', (e) => {
+              // Only show tooltip if the country is not dimmed
+              const countryElement = e.target.closest('.country-data');
+              if (countryElement && !countryElement.classList.contains('dimmed')) {
+                const country = e.target.getAttribute('data-country');
+                const category = e.target.getAttribute('data-category');
+                const value = e.target.getAttribute('data-value');
+                
+                tooltip.querySelector('.country').textContent = `${country} - ${category}`;
+                tooltip.querySelector('.value').textContent = `${value}%`;
+                
+                // Position tooltip near the point
+                const rect = e.target.getBoundingClientRect();
+                const containerRect = tooltip.parentElement.getBoundingClientRect();
+                
+                const tooltipX = rect.left - containerRect.left + rect.width / 2;
+                const tooltipY = rect.top - containerRect.top;
+                
+                tooltip.style.left = `${tooltipX}px`;
+                tooltip.style.top = `${tooltipY - 50}px`;
+                tooltip.style.opacity = '1';
+              }
+            });
+            
+            hitbox.addEventListener('mouseleave', () => {
+              tooltip.style.opacity = '0';
+            });
+            
+            // Disable click events on dimmed elements
+            hitbox.addEventListener('click', (e) => {
+              const countryElement = e.target.closest('.country-data');
+              if (countryElement && countryElement.classList.contains('dimmed')) {
+                e.stopPropagation();
+                e.preventDefault();
+                return false;
+              }
+            });
+          });
+        }
+        
+        // Country highlight functionality - clicking on legend or SVG elements
+        if (countryElements.length > 0 && legendItems.length > 0) {
+          let highlightedCountry = null;
+          
+          const highlightCountry = (countryName, countryIndex) => {
+            // If already highlighted, unhighlight
+            if (highlightedCountry === countryName) {
+              countryElements.forEach(el => {
+                el.classList.remove('highlighted');
+                el.classList.remove('dimmed');
+              });
+              
+              legendItems.forEach(item => {
+                item.classList.remove('highlighted');
+                item.classList.remove('dimmed');
+              });
+              
+              // Make all hitboxes clickable again
+              hitboxes.forEach(hitbox => {
+                hitbox.style.pointerEvents = 'auto';
+              });
+              
+              highlightedCountry = null;
+            } else {
+              // Highlight the selected country
+              countryElements.forEach(el => {
+                if (el.getAttribute('data-country-name') === countryName) {
+                  el.classList.add('highlighted');
+                  el.classList.remove('dimmed');
+                  
+                  // Enable interactions with this country's points
+                  const countryPoints = el.querySelectorAll('.radar-point-hitbox');
+                  countryPoints.forEach(point => {
+                    point.style.pointerEvents = 'auto';
+                  });
+                } else {
+                  el.classList.add('dimmed');
+                  el.classList.remove('highlighted');
+                  
+                  // Disable interactions with other countries' points
+                  const countryPoints = el.querySelectorAll('.radar-point-hitbox');
+                  countryPoints.forEach(point => {
+                    point.style.pointerEvents = 'none';
+                  });
+                }
+              });
+              
+              legendItems.forEach(item => {
+                if (item.getAttribute('data-country-name') === countryName) {
+                  item.classList.add('highlighted');
+                  item.classList.remove('dimmed');
+                } else {
+                  item.classList.add('dimmed');
+                  item.classList.remove('highlighted');
+                }
+              });
+              
+              highlightedCountry = countryName;
+            }
+          };
+          
+          // Add click handlers to country elements in the chart
+          countryElements.forEach(el => {
+            const countryName = el.getAttribute('data-country-name');
+            const countryIndex = el.getAttribute('data-country-index');
+            
+            el.addEventListener('click', () => {
+              highlightCountry(countryName, countryIndex);
+            });
+          });
+          
+          // Add click handlers to legend items
+          legendItems.forEach(item => {
+            const countryName = item.getAttribute('data-country-name');
+            const countryIndex = item.getAttribute('data-country-index');
+            
+            item.addEventListener('click', () => {
+              highlightCountry(countryName, countryIndex);
+            });
+          });
+          
+          // Add click handlers to individual data points
+          const dataPoints = document.querySelectorAll('.data-point');
+          dataPoints.forEach(point => {
+            point.addEventListener('click', (e) => {
+              const countryName = point.getAttribute('data-country-name');
+              const countryIndex = point.getAttribute('data-country-index');
+              // Prevent point clicks from causing conflicts
+              e.stopPropagation();
+              highlightCountry(countryName, countryIndex);
+            });
+          });
+        }
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [showCompareModal, selectedCountries]);
+  
   // Render comparison chart data
   const renderComparisonData = () => {
     if (selectedCountries.length === 0) return null;
@@ -197,9 +360,7 @@ const EnhancedCountryRankings = ({ countries }) => {
     });
     
     return (
-      <ComparisonContainer>
-        <h3>Country Comparison</h3>
-        
+      <ComparisonContainer ref={radarChartRef}>
         <ChartsGrid>
           <ChartCard>
             <h4>Overall Metrics</h4>
@@ -218,11 +379,13 @@ const EnhancedCountryRankings = ({ countries }) => {
           
           <ChartCard>
             <h4>Overall Ranking Score</h4>
-            <HorizontalBarChart 
-              data={barData} 
-              maxValue={100} 
-              valueLabel="pts"
-            />
+            <BarChartMobileAdjust>
+              <HorizontalBarChart 
+                data={barData} 
+                maxValue={100} 
+                valueLabel="pts"
+              />
+            </BarChartMobileAdjust>
           </ChartCard>
         </ChartsGrid>
       </ComparisonContainer>
@@ -415,7 +578,7 @@ const EnhancedCountryRankings = ({ countries }) => {
       <Modal
         isOpen={showCompareModal}
         onClose={() => setShowCompareModal(false)}
-        title="Compare Countries"
+        title="Country Comparison"
       >
         {renderComparisonData()}
         
