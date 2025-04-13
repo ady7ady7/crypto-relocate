@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { SlideUp } from '../animations';
 
-// Horizontal comparison bar chart
 export const HorizontalBarChart = ({ data, title, valueLabel, maxValue, thresholdColors }) => {
   // If no threshold colors are provided, use a single color
   const getBarColor = (value) => {
@@ -38,7 +37,7 @@ export const HorizontalBarChart = ({ data, title, valueLabel, maxValue, threshol
                     color={item.color || getBarColor(item.value)}
                     data-value={item.value}
                   />
-                  <BarValue>{valueLabel ? `${item.value}` : item.value}</BarValue>
+                  <BarValue>{item.value}{valueLabel ? ` ${valueLabel}` : ''}</BarValue>
                 </BarWrapper>
               </BarContainer>
             </SlideUp>
@@ -48,6 +47,7 @@ export const HorizontalBarChart = ({ data, title, valueLabel, maxValue, threshol
     </ChartContainer>
   );
 };
+
 
 // Modified RadarChart component for the ComparisonChart.js file
 export const RadarChart = ({ data, categories, size = 350, activeCountryIndex = 0 }) => {
@@ -112,10 +112,6 @@ export const RadarChart = ({ data, categories, size = 350, activeCountryIndex = 
 
   return (
     <RadarChartContainer>
-      <InteractionTip>
-        <TipIcon>💡</TipIcon>
-        Click on a data point to see more details
-      </InteractionTip>
       
       <svg width="100%" height="100%" viewBox={`0 0 ${adjustedSize} ${adjustedSize}`} preserveAspectRatio="xMidYMid meet">
         <g>
@@ -322,9 +318,10 @@ export const StatCard = ({ title, value, change, chartData, icon: Icon, decrease
   );
 };
 
-// Styled components
+// Styled components for HorizontalBarChart
 const ChartContainer = styled.div`
   margin: ${({ theme }) => theme.spacing.lg} 0;
+  width: 100%;
 `;
 
 const ChartTitle = styled.h3`
@@ -337,12 +334,14 @@ const BarsContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.md};
+  width: 100%;
 `;
 
 const BarContainer = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.md};
+  width: 100%;
 `;
 
 const BarLabel = styled.div`
@@ -350,6 +349,12 @@ const BarLabel = styled.div`
   font-size: 0.9rem;
   color: ${props => props.theme.colors.secondaryText || '#B3B3B3'};
   text-align: right;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    width: 80px;
+    font-size: 0.8rem;
+  }
 `;
 
 const BarWrapper = styled.div`
@@ -358,6 +363,7 @@ const BarWrapper = styled.div`
   background-color: ${props => props.theme.colors.secondaryBackground || '#333'};
   border-radius: ${props => props.theme.borderRadius.sm || '4px'};
   position: relative;
+  overflow: hidden;
 `;
 
 const Bar = styled.div`

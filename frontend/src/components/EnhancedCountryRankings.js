@@ -1,4 +1,4 @@
-
+// frontend/src/components/EnhancedCountryRankings.js
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -16,11 +16,14 @@ const PAGE_SIZE = 10;
 
 // For horizontal bar chart on mobile
 const BarChartMobileAdjust = styled.div`
+  width: 100%;
+  position: relative;
+  overflow: visible;
+  
   @media (max-width: 480px) {
-    width: 100%;
     display: flex;
     justify-content: center;
-    margin-left: -10px; /* Adjust as needed to center the chart on mobile */
+    padding: 0 5px;
   }
 `;
 
@@ -150,196 +153,316 @@ const EnhancedCountryRankings = ({ countries }) => {
   // Handle country selection for radar chart focus
   const handleCountryFocus = (index) => {
     setActiveCountryIndex(index);
+    
+    // Update tooltip event handlers after changing the active country
+    setTimeout(() => {
+      updateTooltipHandlers();
+    }, 100);
   };
 
-  // Initialize radar chart tooltips and interactivity after rendering
+  // Function to update tooltip handlers when the active country changes
+  const updateTooltipHandlers = () => {
+    if (!showCompareModal) return;
+    
+    const tooltip = document.getElementById('radar-tooltip');
+    const hitboxes = document.querySelectorAll('.radar-point-hitbox');
+    
+    if (!tooltip || hitboxes.length === 0) return;
+    
+    // Setup tooltip handlers
+    hitboxes.forEach(hitbox => {
+      // Remove old event listeners if any
+      hitbox.removeEventListener('mouseenter', handleTooltipEnter);
+      hitbox.removeEventListener('mouseleave', handleTooltipLeave);
+      
+      // Add new event listeners
+      hitbox.addEventListener('mouseenter', handleTooltipEnter);
+      hitbox.addEventListener('mouseleave', handleTooltipLeave);
+    });
+  };
+
+  // Helper functions for tooltip handling
+  const handleTooltipEnter = (e) => {
+    const tooltip = document.getElementById('radar-tooltip');
+    if (!tooltip) return;
+    
+    const country = e.target.getAttribute('data-country');
+    const category = e.target.getAttribute('data-category');
+    const value = e.target.getAttribute('data-value');
+    
+    tooltip.querySelector('.country').textContent = `${country} - ${category}`;
+    tooltip.querySelector('.value').textContent = `${value}%`;
+    
+    // Position tooltip near the point
+    const rect = e.target.getBoundingClientRect();
+    const containerRect = tooltip.parentElement.getBoundingClientRect();
+    
+    const tooltipX = rect.left - containerRect.left + rect.width / 2;
+    const tooltipY = rect.top - containerRect.top;
+    
+    tooltip.style.left = `${tooltipX}px`;
+    tooltip.style.top = `${tooltipY - 50}px`;
+    tooltip.style.opacity = '1';
+  };
+
+  const handleTooltipLeave = () => {
+    const tooltip = document.getElementById('radar-tooltip');
+    if (tooltip) {
+      tooltip.style.opacity = '0';
+    }
+  };
+
+  /**
+   * Touch handler for mobile devices
+   */
+  const handleTooltipTouch = (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    
+    const tooltip = document.getElementById('radar-tooltip');
+    if (!tooltip) return;
+    
+    // Get data from the touched element
+    const country = e.target.getAttribute('data-country');
+    const category = e.target.getAttribute('data-category');
+    const value = e.target.getAttribute('data-value');
+    
+    tooltip.querySelector('.country').textContent = `${country} - ${category}`;
+    tooltip.querySelector('.value').textContent = `${value}%`;
+    
+    // Position tooltip near the touch point
+    const rect = e.target.getBoundingClientRect();
+    const containerRect = tooltip.parentElement.getBoundingClientRect();
+    
+    const tooltipX = rect.left - containerRect.left + rect.width / 2;
+    const tooltipY = rect.top - containerRect.top;
+    
+    tooltip.style.left = `${tooltipX}px`;
+    tooltip.style.top = `${tooltipY - 50}px`;
+    tooltip.style.opacity = '1';
+    
+    // Hide the tooltip after a delay (for mobile)
+    setTimeout(() => {
+      tooltip.style.opacity = '0';
+    }, 3000);
+  };
+
+  // Initialize the radar chart with proper event handlers
+  const initializeRadarChart = () => {
+    // Wait for the DOM to be fully updated
+    setTimeout(() => {
+      // Get the tooltip element
+      const tooltip = document.getElementById('radar-tooltip');
+      if (!tooltip) return;
+      
+      // Get all the radar points for the active country only
+      const hitboxes = document.querySelectorAll('.radar-point-hitbox');
+      
+      // Attach tooltip handlers to each point
+      hitboxes.forEach(hitbox => {
+        // Remove any existing handlers first
+        hitbox.removeEventListener('mouseenter', handleTooltipEnter);
+        hitbox.removeEventListener('mouseleave', handleTooltipLeave);
+        
+        // Add new handlers
+        hitbox.addEventListener('mouseenter', handleTooltipEnter);
+        hitbox.addEventListener('mouseleave', handleTooltipLeave);
+      });
+      
+      // Handle mobile devices - add touch handlers
+      const isTouchDevice = ('ontouchstart' in window) || 
+                           (navigator.maxTouchPoints > 0) || 
+                           (navigator.msMaxTouchPoints > 0);
+      
+      if (isTouchDevice) {
+        hitboxes.forEach(hitbox => {
+          hitbox.removeEventListener('touchstart', handleTooltipTouch);
+          hitbox.addEventListener('touchstart', handleTooltipTouch);
+        });
+        
+        // Add a general touch handler to hide tooltip when touching elsewhere
+        document.addEventListener('touchstart', (e) => {
+          // Check if the touch is on a hitbox
+          if (!e.target.classList.contains('radar-point-hitbox')) {
+            tooltip.style.opacity = '0';
+          }
+        });
+      }
+    }, 100); // Short delay to ensure DOM is ready
+  };
+
+  // Update the useEffect hook for modal visibility
   useEffect(() => {
     if (showCompareModal) {
-      // Delay to ensure the DOM is ready
-      const timeoutId = setTimeout(() => {
-        const tooltip = document.getElementById('radar-tooltip');
-        const hitboxes = document.querySelectorAll('.radar-point-hitbox');
-        
-        // Tooltip functionality
-        if (tooltip && hitboxes.length > 0) {
-          hitboxes.forEach(hitbox => {
-            hitbox.addEventListener('mouseenter', (e) => {
-              const country = e.target.getAttribute('data-country');
-              const category = e.target.getAttribute('data-category');
-              const value = e.target.getAttribute('data-value');
-              
-              tooltip.querySelector('.country').textContent = `${country} - ${category}`;
-              tooltip.querySelector('.value').textContent = `${value}%`;
-              
-              // Position tooltip near the point
-              const rect = e.target.getBoundingClientRect();
-              const containerRect = tooltip.parentElement.getBoundingClientRect();
-              
-              const tooltipX = rect.left - containerRect.left + rect.width / 2;
-              const tooltipY = rect.top - containerRect.top;
-              
-              tooltip.style.left = `${tooltipX}px`;
-              tooltip.style.top = `${tooltipY - 50}px`;
-              tooltip.style.opacity = '1';
-            });
-            
-            hitbox.addEventListener('mouseleave', () => {
-              tooltip.style.opacity = '0';
-            });
-          });
-        }
-      }, 300);
+      // Initialize radar chart when modal becomes visible
+      initializeRadarChart();
       
-      return () => clearTimeout(timeoutId);
-    }
-  }, [showCompareModal, selectedCountries, activeCountryIndex]);
-  
-// Updated renderComparisonData function for EnhancedCountryRankings.js
-const renderComparisonData = () => {
-  if (selectedCountries.length === 0) return null;
-  
-  // For radar chart
-  const radarData = selectedCountries.map(country => {
-    // Parse numeric values from tax percentages and other metrics
-    const capitalGainsTax = (country.capitalGainsTaxShort || country.capitalGainsTax).includes('%') 
-      ? 100 - parseFloat(country.capitalGainsTaxShort || country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
-      : 0;
-    
-    // Map financial services to numeric values
-    const financialServicesScore = 
-      country.financialServices === 'World-class' ? 100 :
-      country.financialServices === 'Advanced' ? 80 :
-      country.financialServices === 'Strong' ? 60 :
-      country.financialServices === 'Moderate' ? 40 :
-      country.financialServices === 'Developing' ? 20 : 10;
-    
-    // Derive residency score based on investment amount
-    const residencyText = country.residencyInvestment;
-    let residencyScore = 50; // Default
-    
-    if (residencyText.includes('0k') || residencyText.includes('No ')) {
-      residencyScore = 90;
-    } else if (residencyText.includes('100k') || residencyText.includes('50k')) {
-      residencyScore = 80;
-    } else if (residencyText.includes('200k') || residencyText.includes('150k')) {
-      residencyScore = 70;
-    } else if (residencyText.includes('300k') || residencyText.includes('500k')) {
-      residencyScore = 60;
-    } else if (residencyText.includes('1M')) {
-      residencyScore = 40;
-    } else if (residencyText.includes('2M') || residencyText.includes('3M')) {
-      residencyScore = 20;
-    }
-    
-    // Risk score (inverted for better visualization)
-    const riskScore = 70; // Default moderate risk
-    
-    const countryColor = getCategoryColor(country.category);
-    
-    return {
-      name: country.name,
-      color: countryColor,
-      values: [
-        capitalGainsTax,           // Tax friendliness
-        country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
-        residencyScore,            // Residency accessibility
-        financialServicesScore,    // Financial services
-        riskScore                  // Risk assessment
-      ]
-    };
-  });
-  
-  // For bar chart
-  const barData = selectedCountries.map(country => {
-    const countryColor = getCategoryColor(country.category);
-    
-    return {
-      label: country.name,
-      value: 100 - country.rank, // Invert rank for visualization (higher is better)
-      color: countryColor
-    };
-  });
-  
-  return (
-    <ComparisonContainer ref={radarChartRef}>
-      {/* Country selection tabs moved to the top */}
-      <CountrySelectionTabs>
-        {selectedCountries.map((country, idx) => (
-          <CountryTab 
-            key={country._id} 
-            active={idx === activeCountryIndex}
-            onClick={() => handleCountryFocus(idx)}
-            color={getCategoryColor(country.category)}
-          >
-            {country.name}
-          </CountryTab>
-        ))}
-      </CountrySelectionTabs>
-      
-      <ChartsGrid>
-        <ChartCard>
-          <h4>Overall Metrics</h4>
-          <RadarChart 
-            data={radarData} 
-            categories={[
-              'Tax Friendliness', 
-              'Wealth Tax', 
-              'Residency Access',
-              'Financial Services',
-              'Risk Level'
-            ]} 
-            size={400}
-            activeCountryIndex={activeCountryIndex}
-          />
-        </ChartCard>
+      // Update when active country changes
+      const updateId = setTimeout(() => {
+        // Update country-related styling
+        document.querySelectorAll('.country-data').forEach((el, idx) => {
+          if (idx === activeCountryIndex) {
+            el.classList.add('highlighted');
+            el.classList.remove('dimmed');
+          } else {
+            el.classList.add('dimmed');
+            el.classList.remove('highlighted');
+          }
+        });
         
-        <ChartCard>
-          <h4>Overall Ranking Score</h4>
-          <BarChartMobileAdjust>
-            <HorizontalBarChart 
-              data={barData} 
-              maxValue={100} 
-              valueLabel="pts"
+        // Update legend items if present
+        document.querySelectorAll('.country-legend-item').forEach((el, idx) => {
+          if (idx === activeCountryIndex) {
+            el.classList.add('highlighted');
+            el.classList.remove('dimmed');
+          } else {
+            el.classList.add('dimmed');
+            el.classList.remove('highlighted');
+          }
+        });
+      }, 10);
+      
+      return () => clearTimeout(updateId);
+    }
+  }, [showCompareModal, activeCountryIndex, selectedCountries]);
+  
+  // Updated renderComparisonData function with only one set of buttons at the top
+  const renderComparisonData = () => {
+    if (selectedCountries.length === 0) return null;
+    
+    // For radar chart
+    const radarData = selectedCountries.map(country => {
+      // Parse numeric values from tax percentages and other metrics
+      const capitalGainsTax = (country.capitalGainsTaxShort || country.capitalGainsTax).includes('%') 
+        ? 100 - parseFloat(country.capitalGainsTaxShort || country.capitalGainsTax) // Invert for better visualization (0% = 100 score)
+        : 0;
+      
+      // Map financial services to numeric values
+      const financialServicesScore = 
+        country.financialServices === 'World-class' ? 100 :
+        country.financialServices === 'Advanced' ? 80 :
+        country.financialServices === 'Strong' ? 60 :
+        country.financialServices === 'Moderate' ? 40 :
+        country.financialServices === 'Developing' ? 20 : 10;
+      
+      // Derive residency score based on investment amount
+      const residencyText = country.residencyInvestment;
+      let residencyScore = 50; // Default
+      
+      if (residencyText.includes('0k') || residencyText.includes('No ')) {
+        residencyScore = 90;
+      } else if (residencyText.includes('100k') || residencyText.includes('50k')) {
+        residencyScore = 80;
+      } else if (residencyText.includes('200k') || residencyText.includes('150k')) {
+        residencyScore = 70;
+      } else if (residencyText.includes('300k') || residencyText.includes('500k')) {
+        residencyScore = 60;
+      } else if (residencyText.includes('1M')) {
+        residencyScore = 40;
+      } else if (residencyText.includes('2M') || residencyText.includes('3M')) {
+        residencyScore = 20;
+      }
+      
+      // Risk score (inverted for better visualization)
+      const riskScore = 70; // Default moderate risk
+      
+      const countryColor = getCategoryColor(country.category);
+      
+      return {
+        name: country.name,
+        color: countryColor,
+        values: [
+          capitalGainsTax,           // Tax friendliness
+          country.wealthTax === '0%' ? 100 : 30, // Wealth tax (simple binary score)
+          residencyScore,            // Residency accessibility
+          financialServicesScore,    // Financial services
+          riskScore                  // Risk assessment
+        ]
+      };
+    });
+    
+    // For bar chart
+    const barData = selectedCountries.map(country => {
+      const countryColor = getCategoryColor(country.category);
+      
+      return {
+        label: country.name,
+        value: 100 - country.rank, // Invert rank for visualization (higher is better)
+        color: countryColor
+      };
+    });
+    
+    return (
+      <ComparisonContainer ref={radarChartRef}>
+        {/* Instruction moved above selection tabs */}
+        <ModalInstructions>
+          <InfoIcon size="18px" color="#F7931A" />
+          <span>Click on a country button to focus on its data</span>
+        </ModalInstructions>
+        
+        {/* Keep only this set of buttons - moved from the bottom to the top */}
+        <SelectedCountriesContainer>
+          <SelectedCountriesList>
+            {selectedCountries.map((country, idx) => {
+              const countryColor = getCategoryColor(country.category);
+              
+              return (
+                <SelectedCountryItem 
+                  key={country._id} 
+                  color={countryColor}
+                  active={idx === activeCountryIndex}
+                  onClick={() => handleCountryFocus(idx)}
+                >
+                  <div className="country-info">
+                    <strong>{country.name}</strong>
+                    <span>Rank #{country.rank}</span>
+                  </div>
+                  <RemoveButton onClick={(e) => {
+                    e.stopPropagation(); // Prevent activation of the country when removing
+                    toggleCountrySelection(country);
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </RemoveButton>
+                </SelectedCountryItem>
+              );
+            })}
+          </SelectedCountriesList>
+        </SelectedCountriesContainer>
+        
+        <ChartsGrid>
+          <ChartCard>
+            <h4>Overall Metrics</h4>
+            <RadarChart 
+              data={radarData} 
+              categories={[
+                'Tax Friendliness', 
+                'Wealth Tax', 
+                'Residency Access',
+                'Financial Services',
+                'Risk Level'
+              ]} 
+              size={400}
+              activeCountryIndex={activeCountryIndex}
             />
-          </BarChartMobileAdjust>
-        </ChartCard>
-      </ChartsGrid>
-      
-      <SelectedCountriesContainer>
-        <h4>Selected Countries</h4>
-        <SelectedCountriesList>
-          {selectedCountries.map((country, idx) => {
-            const countryColor = getCategoryColor(country.category);
-            
-            return (
-              <SelectedCountryItem 
-                key={country._id} 
-                color={countryColor}
-                active={idx === activeCountryIndex}
-                onClick={() => handleCountryFocus(idx)}
-              >
-                <div className="country-info">
-                  <strong>{country.name}</strong>
-                  <span>Rank #{country.rank}</span>
-                </div>
-                <RemoveButton onClick={(e) => {
-                  e.stopPropagation(); // Prevent activation of the country when removing
-                  toggleCountrySelection(country);
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </RemoveButton>
-              </SelectedCountryItem>
-            );
-          })}
-        </SelectedCountriesList>
-      </SelectedCountriesContainer>
-    </ComparisonContainer>
-  );
-};
-  
+          </ChartCard>
+          
+          <ChartCard>
+            <h4>Overall Ranking Score</h4>
+            <BarChartMobileAdjust>
+              <HorizontalBarChart 
+                data={barData} 
+                maxValue={100} 
+                valueLabel="pts"
+              />
+            </BarChartMobileAdjust>
+          </ChartCard>
+        </ChartsGrid>
+      </ComparisonContainer>
+    );
+  };
+
   return (
     <RankingsContainer id="rankings">
       <ScrollReveal>
@@ -522,45 +645,13 @@ const renderComparisonData = () => {
         </div>
       </TableContainer>
       
-      {/* Comparison Modal */}
+      {/* Comparison Modal - Simplified with just one call to renderComparisonData */}
       <Modal
         isOpen={showCompareModal}
         onClose={() => setShowCompareModal(false)}
         title="Country Comparison"
       >
         {renderComparisonData()}
-        
-        <SelectedCountriesContainer>
-          <h4>Selected Countries</h4>
-          <SelectedCountriesList>
-            {selectedCountries.map((country, idx) => {
-              const countryColor = getCategoryColor(country.category);
-              
-              return (
-                <SelectedCountryItem 
-                  key={country._id} 
-                  color={countryColor}
-                  active={idx === activeCountryIndex}
-                  onClick={() => handleCountryFocus(idx)}
-                >
-                  <div className="country-info">
-                    <strong>{country.name}</strong>
-                    <span>Rank #{country.rank}</span>
-                  </div>
-                  <RemoveButton onClick={(e) => {
-                    e.stopPropagation(); // Prevent activation of the country when removing
-                    toggleCountrySelection(country);
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </RemoveButton>
-                </SelectedCountryItem>
-              );
-            })}
-          </SelectedCountriesList>
-        </SelectedCountriesContainer>
       </Modal>
     </RankingsContainer>
   );
@@ -586,7 +677,7 @@ const IconWrapper = styled.div`
   color: ${props => props.color || 'currentColor'};
 `;
 
-// Styled Components
+// Styled components
 const RankingsContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.xxl};
 `;
@@ -660,6 +751,7 @@ const SearchIcon = styled.div`
     }
   }
 `;
+
 
 const SearchInput = styled.input`
   padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.md} ${theme.spacing.md} 48px`};
@@ -861,6 +953,7 @@ const TableContainer = styled.div`
     gap: 4px;
   }
 `;
+
 // The rest of the styled components
 const Checkbox = styled.input`
   width: 18px;
@@ -924,6 +1017,31 @@ const SortIndicator = styled.span`
   border-${({ direction }) => direction === 'up' ? 'bottom' : 'top'}: 5px solid currentColor;
 `;
 
+// Modal instructions styling
+const ModalInstructions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  background-color: rgba(247, 147, 26, 0.1);
+  border: 1px solid rgba(247, 147, 26, 0.2);
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 0.9rem;
+  width: 100%;
+  
+  span {
+    flex: 1;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+  }
+`;
+
+// Enhanced comparison container
 const ComparisonContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
   width: 100%;
@@ -932,18 +1050,20 @@ const ComparisonContainer = styled.div`
   align-items: center;
 `;
 
+// Charts grid with better spacing
 const ChartsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-// Updated chart card styling for better visibility
+// Updated chart card styling
 const ChartCard = styled.div`
   background-color: ${({ theme }) => theme.colors.secondaryBackground};
   border-radius: ${({ theme }) => theme.borderRadius.md};
@@ -971,54 +1091,13 @@ const ChartCard = styled.div`
   }
 `;
 
-const CountrySelectionTabs = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-  margin-bottom: ${({ theme }) => theme.spacing.md};
-  
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const CountryTab = styled.button`
-  background-color: ${({ active, color, theme }) => 
-    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.1)'};
-  color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
-  border: 1px solid ${({ active, color, theme }) => 
-    active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.2)'};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
-  font-weight: ${({ active }) => active ? 'bold' : 'normal'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex: 1;
-  min-width: 120px;
-  text-align: center;
-  
-  &:hover {
-    background-color: ${({ active, color, theme }) => 
-      active ? color || theme.colors.accent : 'rgba(255, 255, 255, 0.15)'};
-    transform: translateY(-2px);
-  }
-  
-  @media (max-width: 480px) {
-    padding: ${({ theme }) => theme.spacing.sm};
-  }
-`;
-
+// Improved Selected Countries container for top placement
 const SelectedCountriesContainer = styled.div`
-  margin-top: ${({ theme }) => theme.spacing.lg};
-  
-  h4 {
-    margin-bottom: ${({ theme }) => theme.spacing.md};
-    font-size: 1.2rem;
-  }
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  width: 100%;
 `;
 
+// List of selected countries with better spacing
 const SelectedCountriesList = styled.div`
   display: flex;
   flex-direction: column;
@@ -1029,6 +1108,7 @@ const SelectedCountriesList = styled.div`
   }
 `;
 
+// Enhanced country item with better interaction
 const SelectedCountryItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -1077,6 +1157,7 @@ const SelectedCountryItem = styled.div`
   }
 `;
 
+// Remove button styling
 const RemoveButton = styled.button`
   background: none;
   border: none;
@@ -1092,4 +1173,4 @@ const RemoveButton = styled.button`
   }
 `;
 
-export default EnhancedCountryRankings;;
+export default EnhancedCountryRankings;
