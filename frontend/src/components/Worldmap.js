@@ -1,10 +1,18 @@
 // https://upload.wikimedia.org/wikipedia/commons/9/95/Continents.svg
+//
 
 // frontend/src/components/WorldMap.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { getCategoryColor, Colors } from './styles/Colors';
+
+import WorldMapComponent from './maps/WorldMapComponent';
+//svg imports
+import { ReactComponent as WorldMapSVG } from './maps/world-map.svg';
+import { africaPath, europePath, asiaPath, northAmericaPath, southAmericaPath, australiaPath } from './maps/continent-paths';
+
+
 
 const WorldMap = ({ countries }) => {
   // State for tracking which continent is active
@@ -15,7 +23,7 @@ const WorldMap = ({ countries }) => {
 
   const mapRef = useRef(null);
   const tooltipRef = useRef(null);
-  
+
   // Define continent data with regions and map positions
   const continents = {
     all: { name: 'All Regions', countries: [] },
@@ -165,11 +173,11 @@ const WorldMap = ({ countries }) => {
           viewBox="0 0 1000 500" 
           preserveAspectRatio="xMidYMid meet"
         >
-          <WorldSilhouette d=".public/Continents.svg" />  
+          <WorldSilhouette as={WorldMapSVG} />  
           
           {/* Europe */}
           <ContinentSilhouette 
-            d=""  
+            d={europePath}
             active={activeContinent === 'eu'}
             hovered={hoveredContinent === 'eu'}
             onClick={() => handleContinentClick('eu')}
@@ -179,7 +187,7 @@ const WorldMap = ({ countries }) => {
           
           {/* Asia */}
           <ContinentSilhouette 
-            d="M0 0"  
+            d={asiaPath}
             active={activeContinent === 'as'}
             hovered={hoveredContinent === 'as'}
             onClick={() => handleContinentClick('as')}
@@ -189,7 +197,7 @@ const WorldMap = ({ countries }) => {
           
           {/* North America */}
           <ContinentSilhouette 
-            d="M0 0"  
+            d={northAmericaPath}
             active={activeContinent === 'na'}
             hovered={hoveredContinent === 'na'}
             onClick={() => handleContinentClick('na')}
@@ -199,7 +207,7 @@ const WorldMap = ({ countries }) => {
           
           {/* South America */}
           <ContinentSilhouette 
-            d="M0 0" 
+            d={southAmericaPath}
             active={activeContinent === 'sa'}
             hovered={hoveredContinent === 'sa'}
             onClick={() => handleContinentClick('sa')}
@@ -209,7 +217,7 @@ const WorldMap = ({ countries }) => {
           
           {/* Africa */}
           <ContinentSilhouette 
-            d="M0 0"  
+            d={africaPath}
             active={activeContinent === 'af'}
             hovered={hoveredContinent === 'af'}
             onClick={() => handleContinentClick('af')}
@@ -219,7 +227,7 @@ const WorldMap = ({ countries }) => {
           
           {/* Oceania */}
           <ContinentSilhouette 
-            d="M0 0" 
+            d={australiaPath}
             active={activeContinent === 'oc'}
             hovered={hoveredContinent === 'oc'}
             onClick={() => handleContinentClick('oc')}
@@ -326,6 +334,7 @@ const MapContainer = styled.div`
   background-color: #f5f5f7;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
 
   @media (max-width: 768px) {
     height: 400px;
@@ -440,13 +449,22 @@ const ContinentButton = styled.button`
 const MapWrapper = styled.div`
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 0;
+  padding-bottom: 50%; /* This maintains a 2:1 aspect ratio */
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    padding-bottom: 75%; /* Adjust aspect ratio for mobile */
+  }
 `;
 
+// Update your SVGMap component
 const SVGMap = styled.svg`
   width: 100%;
   height: 100%;
   display: block;
+  max-width: 100%;
+  margin: 0 auto;
 `;
 
 const CountryDot = styled.circle`
@@ -558,8 +576,12 @@ const LegendText = styled.div`
   }
 `;
 
-// Continent silhouettes
-const ContinentSilhouette = styled.path`
+
+//ContinentSilhouette styling
+const ContinentSilhouette = styled(({ as: Component, ...props }) => {
+  const StyledComponent = Component || 'path';
+  return <StyledComponent {...props} />;
+})`
   fill: ${props => props.active ? '#000066' : props.hovered ? '#0000AA' : '#000033'};
   stroke: ${props => props.active ? '#3333AA' : 'none'};
   stroke-width: 1;
@@ -571,8 +593,11 @@ const ContinentSilhouette = styled.path`
   }
 `;
 
-// Background silhouette for the entire world
-const WorldSilhouette = styled.path`
+// WorldSilhouette styling
+const WorldSilhouette = styled(({ as: Component, ...props }) => {
+  const StyledComponent = Component || 'path';
+  return <StyledComponent {...props} />;
+})`
   fill: #EAEAEA;
   stroke: #D0D0D0;
   stroke-width: 0.5;
