@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { Colors } from './styles/Colors';
 import { ReactComponent as ContinentsMap } from './maps/Continents.svg';
+import { getCountryCoordinates } from './maps/CountryCoordinates';
 
 // Main container that takes full viewport height
 const MapContainer = styled.div`
@@ -42,6 +43,10 @@ const Sidebar = styled.div`
   left: ${({ theme }) => theme.spacing.lg};
   padding: ${({ theme }) => theme.spacing.md};
   z-index: 10;
+  max-height: 75%;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: ${({ theme }) => theme.borderRadius.md};
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     display: none;
@@ -132,22 +137,66 @@ const StyledMap = styled(ContinentsMap)`
   /* Apply styling to continent groups */
   g {
     transition: all 0.3s ease;
-    fill: #e5e5e5; /* Light gray as requested */
+    fill: #e5e5e5; /* Light gray as default */
     
     &:hover {
       cursor: pointer;
-      fill: ${Colors.accent};
+      fill: #D2B48C; /* Light brown color for hover effect (was previously for active) */
     }
     
     &.active {
-      fill: ${Colors.accent};
+      fill: ${Colors.accent}; /* Bitcoin gold for active continent (was previously for hover) */
     }
   }
 `;
 
+// Styled marker for excellent countries
+const CountryMarker = styled.div`
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.countryExcellent};
+  border: 2px solid white;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  transition: all 0.3s ease;
+  opacity: ${({ visible }) => (visible ? 1 : 0)};
+  cursor: pointer; /* Make clickable for mobile */
+  
+  /* Fixed positions that don't change with responsive sizing */
+  top: ${props => props.y}%;
+  left: ${props => props.x}%;
+`;
+
+// Tooltip that appears on hover or tap
+const MarkerTooltip = styled.div`
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+  z-index: 10;
+  opacity: ${({ visible }) => (visible ? 1 : 0)};
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  
+  /* Fixed position */
+  top: ${props => props.y}%;
+  left: ${props => props.x}%;
+`;
+
 const WorldMap = ({ countries = [] }) => {
   const [activeContinent, setActiveContinent] = useState(null);
+  const [hoveredCountry, setHoveredCountry] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
   
   // Define continents
   const continents = [
@@ -155,9 +204,38 @@ const WorldMap = ({ countries = [] }) => {
     { id: 'south_america', name: 'South America' },
     { id: 'europe', name: 'Europe' },
     { id: 'asmeapacific', name: 'Asia, Middle East, Pacific' },
-    { id: 'oceania', name: 'Oceania' },
+    //{ id: 'oceania', name: 'Oceania' },  -- na razie wyłączamy Oceanię, nie ma powodu zeby była tbh
     { id: 'africa', name: 'Africa' }
   ];
+
+  // Check if device is likely mobile based on screen width
+  const [isMobile, setIsMobile] = useState(false);
+  const [excellentCountries, setExcellentCountries] = useState([]);
+  
+  // Update mobile state on window resize and component mount
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const mobile = window.innerWidth <= 768; // Common breakpoint for mobile devices
+      setIsMobile(mobile);
+      setExcellentCountries(getCountryCoordinates(mobile));
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+  
+  // Filter excellent countries by active continent
+  const filteredExcellentCountries = activeContinent
+    ? excellentCountries.filter(country => country.continent === activeContinent)
+    : [];
   
   // Handle continent selection
   const handleContinentSelect = (continentId) => {
@@ -170,6 +248,23 @@ const WorldMap = ({ countries = [] }) => {
     
     console.log(`Selected continent: ${continentId}`);
     console.log('Countries in continent:', continentCountries);
+  };
+  
+  // Handle country marker interactions (hover and click for mobile)
+  const handleMarkerInteraction = (country) => {
+    setHoveredCountry(country);
+  };
+  
+  const handleMarkerMouseLeave = () => {
+    setHoveredCountry(null);
+  };
+  
+  // Handle touch events for mobile devices
+  const handleMarkerTouch = (country, event) => {
+    event.preventDefault(); // Prevent additional events
+    setHoveredCountry(prevCountry => 
+      prevCountry && prevCountry.id === country.id ? null : country
+    );
   };
   
   // Update map when active continent changes
@@ -194,7 +289,7 @@ const WorldMap = ({ countries = [] }) => {
   }, [activeContinent]);
   
   return (
-    <MapContainer>
+    <MapContainer ref={mapContainerRef}>
       {/* The map fills the entire container */}
       <MapWrapper>
         <StyledMap
@@ -209,6 +304,31 @@ const WorldMap = ({ countries = [] }) => {
             }
           }}
         />
+        
+        {/* Country markers for excellent rated countries */}
+        {filteredExcellentCountries.map((country) => (
+          <CountryMarker
+            key={country.id}
+            x={country.x}
+            y={country.y}
+            visible={activeContinent === country.continent}
+            onMouseEnter={() => handleMarkerInteraction(country)}
+            onMouseLeave={handleMarkerMouseLeave}
+            onClick={(e) => handleMarkerTouch(country, e)}
+            onTouchStart={(e) => handleMarkerTouch(country, e)}
+          />
+        ))}
+        
+        {/* Tooltip for country information - positioned relative to country marker */}
+        {hoveredCountry && (
+          <MarkerTooltip
+            visible={hoveredCountry !== null}
+            x={hoveredCountry.x}
+            y={hoveredCountry.y - 3} // Position slightly above the marker
+          >
+            {hoveredCountry.name} - Excellent
+          </MarkerTooltip>
+        )}
       </MapWrapper>
       
       {/* Sidebar overlay on desktop - now in bottom left */}
