@@ -1,21 +1,53 @@
-import React, { useState } from 'react';
+// frontend/src/components/WorldMap.js
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import SvgComponent from './maps/SvgComponent';
+import { Colors } from './styles/Colors';
+import { ReactComponent as ContinentsMap } from './maps/Continents.svg';
 
-// Import continent groups
-import { africaGroup, europeGroup, asiaGroup, northAmericaGroup, southAmericaGroup, australiaGroup } from './maps/continent-groups';
 
-const WorldMap = () => {
-    const [selectedRegion, setSelectedRegion] = useState(null);
+const MapContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  min-height: 400px;
+  
+  svg {
+    width: 100%;
+    height: 100%;
     
-    return (
-      <div className="map-container">
-        <SvgComponent 
-          highlightRegion1={selectedRegion === 'region1'}
-          onRegionClick={setSelectedRegion}
-        />
-      </div>
-    );
+    g {
+      transition: fill 0.3s ease;
+      
+      &:hover {
+        cursor: pointer;
+        filter: drop-shadow(0 0 8px ${Colors.accent});
+      }
+    }
+  }
+`;
+
+const WorldMap = ({ countries = [] }) => {
+  const svgRef = useRef(null);
+  const [activeRegion, setActiveRegion] = useState(null);
+
+  // Add interaction handlers
+  const handleRegionClick = (regionId) => {
+    console.log('Selected region:', regionId);
+    setActiveRegion(regionId);
   };
 
-  export default WorldMap;
+  return (
+    <MapContainer>
+      <ContinentsMap
+        ref={svgRef}
+        data-tip=""
+        onClick={(e) => {
+          const targetGroup = e.target.closest('g');
+          if (targetGroup?.id) handleRegionClick(targetGroup.id);
+        }}
+      />
+    </MapContainer>
+  );
+};
+
+export default React.memo(WorldMap);
